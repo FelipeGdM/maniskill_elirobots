@@ -1,0 +1,50 @@
+[project]
+name = "maniskill-elirobots"
+version = "0.1.0"
+description = ""
+authors = [{ name = "Felipe Gomes de Melo" }]
+license = { text = "MIT" }
+readme = "README.md"
+requires-python = ">=3.10,<3.15"
+dependencies = [
+    "torch (>=2.10.0,<3.0.0)",
+    "mani-skill (>=3.0.0b22,<4.0.0)",
+    "setuptools (==81.0.0)",
+]
+
+include = ["src/**/*", "assets/**/*"]
+
+[tool.ruff]
+# Same as Black.
+line-length = 256
+indent-width = 4
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = ["D102", "ANN", "ERA"]
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+[tool.poetry]
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^9.0.2"
+
+[[tool.poetry.source]]
+name = "pytorch-rocm64"
+url = "https://download.pytorch.org/whl/rocm6.4"
+priority = "explicit"
+
+[[tool.poetry.source]]
+name = "pytorch-rocm71"
+url = "https://download.pytorch.org/whl/rocm7.1"
+priority = "explicit"
+
+[tool.basedpyright]
+reportUnannotatedClassAttribute = false
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

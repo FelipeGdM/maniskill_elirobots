@@ -1,0 +1,11 @@
+libdir=/usr/lib64   # e.g., /usr/lib
+includedir=/usr/include  # e.g., /usr/include
+version=0.3.29  # set to actual version
+extralib=-lm -lpthread -lgfortran   # Check if you use openblas built with pthreads or openmp, if the latter, add `-lgomp`
+Name: openblas
+Description: OpenBLAS is an optimized BLAS library based on GotoBLAS2 1.13 BSD version
+Version: ${version}
+URL: https://github.com/xianyi/OpenBLAS
+Libs: -L${libdir} -lopenblas
+Libs.private: ${extralib}
+Cflags: -I${includedir}
