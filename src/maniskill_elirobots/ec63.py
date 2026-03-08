@@ -1,13 +1,12 @@
 import copy
-from typing import cast, override
+from typing import override
 
 import numpy as np
-import sapien
-from mani_skill.agents.base_agent import Actor, BaseAgent, ControllerConfig, DictControllerConfig  # pyright: ignore[reportMissingTypeStubs]
+from mani_skill.agents.base_agent import Actor, BaseAgent  # pyright: ignore[reportMissingTypeStubs]
 from mani_skill.agents.controllers import PDJointPosControllerConfig, PDJointPosMimicControllerConfig  # pyright: ignore[reportMissingTypeStubs]
 from mani_skill.agents.registration import register_agent  # pyright: ignore[reportMissingTypeStubs]
 from mani_skill.sensors.camera import CameraConfig  # pyright: ignore[reportMissingTypeStubs]
-from mani_skill.utils.structs import Pose
+from mani_skill.utils.structs import Pose  # pyright: ignore[reportMissingTypeStubs]
 from torch import Tensor
 
 
