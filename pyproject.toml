@@ -12,8 +12,6 @@ dependencies = [
     "setuptools (==81.0.0)",
 ]
 
-include = ["src/**/*", "assets/**/*"]
-
 [tool.ruff]
 # Same as Black.
 line-length = 256
@@ -28,6 +26,7 @@ fixable = ["ALL"]
 unfixable = []
 
 [tool.poetry]
+include = ["src/**/*", "assets/**/*"]
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^9.0.2"
