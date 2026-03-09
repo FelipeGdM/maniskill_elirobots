@@ -1,4 +1,5 @@
 import copy
+from importlib import resources
 from typing import override
 
 import numpy as np
@@ -15,7 +16,7 @@ class DualEC63(BaseAgent):
     """ManiSkill representation of EC63."""
 
     uid = "dual_ec63"
-    urdf_path = "/home/felipe/Documents/Poli/RL/maniskill_elirobots/assets/dual_ec63/dual_ec63_description.urdf"
+    urdf_path = str(resources.files("maniskill_elirobots") / "assets/dual_ec63/dual_ec63_description.urdf")
     r1_arm_joint_names = [
         "r1_joint1",
         "r1_joint2",

@@ -1,4 +1,6 @@
 import copy
+from importlib import resources
+from pathlib import Path
 from typing import override
 
 import numpy as np
@@ -15,8 +17,8 @@ class EC63(BaseAgent):
     """ManiSkill representation of EC63."""
 
     uid = "ec63"
-    urdf_path = "/home/felipe/Documents/Poli/RL/maniskill_elirobots/assets/ec63/ec63_description.urdf"
-    arm_joint_names = [  # noqa: RUF012
+    urdf_path = str(resources.files("maniskill_elirobots") / "assets/ec63/ec63_description.urdf")
+    arm_joint_names = [
         "joint1",
         "joint2",
         "joint3",
@@ -25,7 +27,7 @@ class EC63(BaseAgent):
         "joint6",
     ]
 
-    gripper_joint_names = [  # noqa: RUF012
+    gripper_joint_names = [
         "finger_1_joint",
         "finger_2_joint",
     ]
