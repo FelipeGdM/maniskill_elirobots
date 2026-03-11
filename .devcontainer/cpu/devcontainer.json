@@ -11,7 +11,7 @@
 	"runArgs": [
 		"--privileged",
 		"--device=/dev/dri:/dev/dri",
-		"--ipc=host"
+		// "--ipc=host"
 		// "-v /usr/share/vulkan/icd.d/intel_icd.x86_64.json:/usr/share/vulkan/icd.d/intel_icd.x86_64.json:ro"
 		// "--device /dev/dri"
 	],
