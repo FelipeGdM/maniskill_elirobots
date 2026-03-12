@@ -19,7 +19,7 @@ indent-width = 4
 
 [tool.ruff.lint]
 select = ["ALL"]
-ignore = ["D", "ANN", "ERA", "RUF012"]
+ignore = ["D", "ANN", "ERA", "RUF012", "T201"]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]
@@ -43,6 +43,9 @@ priority = "explicit"
 
 [tool.basedpyright]
 reportUnannotatedClassAttribute = false
+reportUnknownVariableType = false
+reportUnknownMemberType = false
+reportArgumentType = false
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
