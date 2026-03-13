@@ -4,11 +4,12 @@ from pathlib import Path
 from typing import override
 
 import numpy as np
-from mani_skill.agents.base_agent import Actor, BaseAgent  # pyright: ignore[reportMissingTypeStubs]
-from mani_skill.agents.controllers import PDJointPosControllerConfig, PDJointPosMimicControllerConfig  # pyright: ignore[reportMissingTypeStubs]
-from mani_skill.agents.registration import register_agent  # pyright: ignore[reportMissingTypeStubs]
-from mani_skill.sensors.camera import CameraConfig  # pyright: ignore[reportMissingTypeStubs]
-from mani_skill.utils.structs import Pose  # pyright: ignore[reportMissingTypeStubs]
+from mani_skill.agents.base_agent import Actor, BaseAgent
+from mani_skill.agents.controllers import PDJointPosControllerConfig, PDJointPosMimicControllerConfig
+from mani_skill.agents.registration import register_agent
+from mani_skill.sensors.camera import CameraConfig
+from mani_skill.utils import common, sapien_utils
+from mani_skill.utils.structs import Link, Pose
 from torch import Tensor
 
 
@@ -32,6 +33,8 @@ class EC63(BaseAgent):
         "finger_2_joint",
     ]
 
+    ee_link_name = "claw_tcp_link"
+
     """Reference values taken from panda robot"""
     arm_stiffness = 1e3
     arm_damping = 1e2
@@ -40,6 +43,11 @@ class EC63(BaseAgent):
     gripper_stiffness = 1e3
     gripper_damping = 1e2
     gripper_force_limit = 100
+
+    @override
+    def _after_init(self):
+        # Tool Center Point
+        self.tcp: list[Link] | Link | None = sapien_utils.get_obj_by_name(self.robot.get_links(), self.ee_link_name)  # pyright: ignore[reportUninitializedInstanceVariable]
 
     @property
     @override
@@ -109,9 +117,21 @@ class EC63(BaseAgent):
     def is_static(self, threshold: float) -> bool:
         return False
 
+    @property
+    def tcp_pos(self):
+        if self.tcp is not Link:
+            return None
+        return self.tcp.pose.p
+
+    @property
+    def tcp_pose(self):
+        if self.tcp is None:
+            return None
+        return self.tcp.pose
+
 
 if __name__ == "__main__":
-    import mani_skill.examples.demo_robot as demo_robot_script  # pyright: ignore[reportMissingTypeStubs]
+    import mani_skill.examples.demo_robot as demo_robot_script
 
     args = demo_robot_script.Args(
         robot_uid="ec63",

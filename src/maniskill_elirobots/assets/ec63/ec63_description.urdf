@@ -337,4 +337,12 @@
         <limit lower="0" upper="0.01" effort="10" velocity="0.1" />
         <dynamics damping="0.1" friction="0.0" />
     </joint>
+
+    <!-- FIXME: Define claw tool center point -->
+    <link name="claw_tcp_link" />
+    <joint name="claw_tcp_joint" type="fixed">
+        <origin rpy="0 0 0" xyz="0 0 0.050" />
+        <parent link="claw_base" />
+        <child link="claw_tcp_link" />
+    </joint>
 </robot>
