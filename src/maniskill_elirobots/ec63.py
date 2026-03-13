@@ -4,7 +4,10 @@ from pathlib import Path
 from typing import override
 
 import numpy as np
-from mani_skill.agents.base_agent import Actor, BaseAgent
+
+# from sapien import Pose
+import sapien
+from mani_skill.agents.base_agent import Actor, BaseAgent, Keyframe
 from mani_skill.agents.controllers import PDJointPosControllerConfig, PDJointPosMimicControllerConfig
 from mani_skill.agents.registration import register_agent
 from mani_skill.sensors.camera import CameraConfig
@@ -43,6 +46,13 @@ class EC63(BaseAgent):
     gripper_stiffness = 1e3
     gripper_damping = 1e2
     gripper_force_limit = 100
+
+    keyframes = {
+        "rest": Keyframe(
+            qpos=np.array([0.0, np.pi / 8, 0, -np.pi * 5 / 8, 0, np.pi * 3 / 4, np.pi / 4, 0.04, 0.04]),
+            pose=sapien.Pose(),
+        ),
+    }
 
     @override
     def _after_init(self):
