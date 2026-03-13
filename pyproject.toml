@@ -47,6 +47,8 @@ reportUnannotatedClassAttribute = false
 reportUnknownVariableType = false
 reportUnknownMemberType = false
 reportArgumentType = false
+reportUntypedClassDecorator = false
+reportMissingTypeStubs = false
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
