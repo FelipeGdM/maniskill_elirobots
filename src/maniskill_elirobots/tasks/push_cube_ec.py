@@ -32,10 +32,10 @@ from mani_skill.utils.structs import Pose
 from mani_skill.utils.structs.types import Array, GPUMemoryConfig, SimConfig
 from transforms3d.euler import euler2quat
 
-from maniskill_elirobots.ec63 import EC63
+from maniskill_elirobots.robots.ec63 import EC63
 
 
-@register_env("PushCubeEc-v1", max_episode_steps=100)
+@register_env("PushCubeEc-v1", max_episode_steps=50)
 class PushCubeEcEnv(BaseEnv):
     """
     **Task Description:**
