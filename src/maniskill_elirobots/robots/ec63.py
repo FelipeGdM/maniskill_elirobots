@@ -51,7 +51,16 @@ class EC63(BaseAgent):
 
     keyframes = {
         "rest": Keyframe(
-            qpos=[0.0, -3 * np.pi / 8, 6 * np.pi / 8, -3 * np.pi / 8, -np.pi / 2, 0, 0, 0],
+            qpos=[
+                0.0,
+                -7 * np.pi / 8,
+                5 * np.pi / 8,
+                -2 * np.pi / 8,
+                4 * np.pi / 8,
+                0,
+                0,
+                0,
+            ],
             pose=sapien.Pose(),
         ),
     }
@@ -164,8 +173,8 @@ class EC63(BaseAgent):
         return self.tcp.pose
 
 
-if __name__ == "__main__":
-    import mani_skill.examples.demo_robot as demo_robot_script
+def _script():
+    import mani_skill.examples.demo_robot as demo_robot_script  # noqa: PLC0415
 
     args = demo_robot_script.Args(
         robot_uid="ec63",
@@ -175,3 +184,7 @@ if __name__ == "__main__":
     )
 
     demo_robot_script.main(args)
+
+
+if __name__ == "__main__":
+    _script()

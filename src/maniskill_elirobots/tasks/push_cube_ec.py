@@ -153,10 +153,10 @@ class PushCubeEcEnv(BaseEnv):
                 init_qpos=torch.Tensor(
                     [
                         0.0,
-                        -3 * np.pi / 8,
-                        6 * np.pi / 8,
-                        -3 * np.pi / 8,
-                        -np.pi / 2,
+                        -7 * np.pi / 8,
+                        5 * np.pi / 8,
+                        -2 * np.pi / 8,
+                        4 * np.pi / 8,
                         0,
                         0,
                         0,
