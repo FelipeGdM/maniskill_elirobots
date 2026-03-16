@@ -13,6 +13,9 @@ dependencies = [
     "tensorboard (>=2.20.0)",
 ]
 
+[project.scripts]
+show-robot = "maniskill_elirobots.robots.ec63:_script"
+
 [tool.ruff]
 # Same as Black.
 line-length = 256
