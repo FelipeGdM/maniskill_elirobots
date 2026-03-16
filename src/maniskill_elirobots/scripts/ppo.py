@@ -3,6 +3,7 @@ import random
 import time
 from collections import defaultdict
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Optional
 
 import gymnasium as gym
@@ -21,7 +22,10 @@ from mani_skill.vector.wrappers.gymnasium import ManiSkillVectorEnv
 from torch.distributions.normal import Normal
 from torch.utils.tensorboard import SummaryWriter
 
-from maniskill_elirobots import ec63
+from maniskill_elirobots.robots import ec63
+
+ROBOT_UID = "panda"
+ROBOT_UID = "ec63"  # pyright: ignore[reportConstantRedefinition]
 
 
 @dataclass
@@ -203,8 +207,8 @@ if __name__ == "__main__":
     env_kwargs = {"obs_mode": "state", "render_mode": "rgb_array", "sim_backend": "physx_cuda"}
     if args.control_mode is not None:
         env_kwargs["control_mode"] = args.control_mode
-    envs = gym.make(args.env_id, robot_uids="ec63", num_envs=args.num_envs if not args.evaluate else 1, reconfiguration_freq=args.reconfiguration_freq, **env_kwargs)
-    eval_envs = gym.make(args.env_id, robot_uids="ec63", num_envs=args.num_eval_envs, reconfiguration_freq=args.eval_reconfiguration_freq, **env_kwargs)
+    envs = gym.make(args.env_id, robot_uids=ROBOT_UID, num_envs=args.num_envs if not args.evaluate else 1, reconfiguration_freq=args.reconfiguration_freq, **env_kwargs)
+    eval_envs = gym.make(args.env_id, robot_uids=ROBOT_UID, num_envs=args.num_eval_envs, reconfiguration_freq=args.eval_reconfiguration_freq, **env_kwargs)
     if isinstance(envs.action_space, gym.spaces.Dict):
         envs = FlattenActionSpaceWrapper(envs)
         eval_envs = FlattenActionSpaceWrapper(eval_envs)
@@ -269,12 +273,13 @@ if __name__ == "__main__":
 
     if args.checkpoint:
         agent.load_state_dict(torch.load(args.checkpoint))
+        global_step = int(Path(args.checkpoint).stem.split("_")[-1])
 
     for iteration in range(1, args.num_iterations + 1):
         print(f"Epoch: {iteration}, global_step={global_step}")
         final_values = torch.zeros((args.num_steps, args.num_envs), device=device)
         agent.eval()
-        if iteration % args.eval_freq == 1:
+        if iteration % args.eval_freq == 0:
             print("Evaluating")
             eval_obs, _ = eval_envs.reset()
             eval_metrics = defaultdict(list)
@@ -295,8 +300,8 @@ if __name__ == "__main__":
                 print(f"eval_{k}_mean={mean}")
             if args.evaluate:
                 break
-        if args.save_model and iteration % args.eval_freq == 1:
-            model_path = f"runs/{run_name}/ckpt_{iteration}.pt"
+        if args.save_model and iteration % args.eval_freq == 0:
+            model_path = f"runs/{run_name}/ckpt_{global_step}.pt"
             torch.save(agent.state_dict(), model_path)
             print(f"model saved to {model_path}")
         # Annealing the rate if instructed to do so.
@@ -463,7 +468,7 @@ if __name__ == "__main__":
         logger.add_scalar("time/rollout_fps", args.num_envs * args.num_steps / rollout_time, global_step)
     if not args.evaluate:
         if args.save_model:
-            model_path = f"runs/{run_name}/final_ckpt.pt"
+            model_path = f"runs/{run_name}/ckpt_{global_step}.pt"
             torch.save(agent.state_dict(), model_path)
             print(f"model saved to {model_path}")
         logger.close()
