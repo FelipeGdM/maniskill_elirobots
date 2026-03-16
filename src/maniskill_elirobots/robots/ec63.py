@@ -1,18 +1,20 @@
 import copy
 from importlib import resources
 from pathlib import Path
-from typing import override
+from typing import Any, cast, override
 
 import numpy as np
 
 # from sapien import Pose
 import sapien
+import torch
 from mani_skill.agents.base_agent import Actor, BaseAgent, Keyframe
 from mani_skill.agents.controllers import PDJointPosControllerConfig, PDJointPosMimicControllerConfig
 from mani_skill.agents.registration import register_agent
 from mani_skill.sensors.camera import CameraConfig
 from mani_skill.utils import common, sapien_utils
 from mani_skill.utils.structs import Link, Pose
+from mani_skill.utils.structs.link import Link
 from torch import Tensor
 
 
@@ -56,8 +58,12 @@ class EC63(BaseAgent):
 
     @override
     def _after_init(self):
+        self.finger1_link: list[Link] | Link | None = sapien_utils.get_obj_by_name(self.robot.get_links(), "claw_finger_1")  # pyright: ignore[reportUninitializedInstanceVariable]
+        self.finger2_link: list[Link] | Link | None = sapien_utils.get_obj_by_name(self.robot.get_links(), "claw_finger_2")  # pyright: ignore[reportUninitializedInstanceVariable]
+        # self.finger1pad_link = sapien_utils.get_obj_by_name(self.robot.get_links(), "panda_leftfinger_pad")
+        # self.finger2pad_link = sapien_utils.get_obj_by_name(self.robot.get_links(), "panda_rightfinger_pad")
         # Tool Center Point
-        self.tcp: list[Link] | Link | None = sapien_utils.get_obj_by_name(self.robot.get_links(), self.ee_link_name)  # pyright: ignore[reportUninitializedInstanceVariable]
+        self.tcp = cast("Link", sapien_utils.get_obj_by_name(self.robot.get_links(), self.ee_link_name))  # pyright: ignore[reportUninitializedInstanceVariable]
 
     @property
     @override
@@ -120,23 +126,41 @@ class EC63(BaseAgent):
         ]
 
     @override
-    def is_grasping(self, object: Actor | None = None) -> bool:
-        return False
+    def is_grasping(self, obj: Actor | None, min_force: float = 0.5, max_angle: float = 85) -> Tensor:  # pyright: ignore[reportIncompatibleMethodOverride]
+        """Check if the robot is grasping an object
+
+        Args:
+            object (Actor): The object to check if the robot is grasping
+            min_force (float, optional): Minimum force before the robot is considered to be grasping the object in Newtons. Defaults to 0.5.
+            max_angle (int, optional): Maximum angle of contact to consider grasping. Defaults to 85.
+        """
+        if obj is None:
+            return torch.Tensor([False])
+        l_contact_forces = cast("Tensor", self.scene.get_pairwise_contact_forces(self.finger1_link, obj))
+        r_contact_forces = cast("Tensor", self.scene.get_pairwise_contact_forces(self.finger2_link, obj))
+        lforce = cast("float", torch.linalg.norm(l_contact_forces, axis=1))
+        rforce = cast("float", torch.linalg.norm(r_contact_forces, axis=1))
+
+        # direction to open the gripper
+        ldirection = cast("Tensor", self.finger1_link.pose.to_transformation_matrix()[..., :3, 1])  # pyright: ignore[reportOptionalMemberAccess, reportAttributeAccessIssue]
+        rdirection = cast("Tensor", -self.finger2_link.pose.to_transformation_matrix()[..., :3, 1])  # pyright: ignore[reportOptionalMemberAccess, reportAttributeAccessIssue]
+        langle = common.compute_angle_between(x1=ldirection, x2=l_contact_forces)
+        rangle = common.compute_angle_between(x1=rdirection, x2=r_contact_forces)
+        lflag = torch.logical_and(lforce >= min_force, torch.rad2deg(langle) <= max_angle)
+        rflag = torch.logical_and(rforce >= min_force, torch.rad2deg(rangle) <= max_angle)
+        return torch.logical_and(lflag, rflag)
 
     @override
-    def is_static(self, threshold: float) -> bool:
-        return False
+    def is_static(self, threshold: float = 0.2):
+        qvel = cast("Tensor", self.robot.get_qvel()[..., :-2])
+        return torch.max(torch.abs(qvel), 1)[0] <= threshold
 
     @property
     def tcp_pos(self):
-        if self.tcp is not Link:
-            return None
         return self.tcp.pose.p
 
     @property
     def tcp_pose(self):
-        if self.tcp is None:
-            return None
         return self.tcp.pose
 
 
