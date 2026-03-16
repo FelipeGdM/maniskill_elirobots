@@ -253,7 +253,7 @@
     </link>
 
     <joint name="claw_joint" type="fixed">
-        <origin xyz="0 0 0" rpy="0 0 0" />
+        <origin xyz="0 0 0.034" rpy="0 0 0" />
         <parent link="flan" />
         <child link="claw_base" />
     </joint>
@@ -274,9 +274,9 @@
             <material name="finger_material" />
         </visual>
         <visual>
-            <origin xyz="0.005 0 0.025" rpy="0 0 0" />
+            <origin xyz="0.005 0 0.0125" rpy="0 0 0" />
             <geometry>
-                <box size="0.005 0.008 0.025" />
+                <box size="0.005 0.008 0.041" />
             </geometry>
             <material name="finger_ext_material" />
         </visual>
@@ -304,9 +304,9 @@
             <material name="finger_material" />
         </visual>
         <visual>
-            <origin xyz="-0.005 0 0.025" rpy="0 0 0" />
+            <origin xyz="-0.005 0 0.0125" rpy="0 0 0" />
             <geometry>
-                <box size="0.005 0.008 0.025" />
+                <box size="0.005 0.008 0.041" />
             </geometry>
             <material name="finger_ext_material" />
         </visual>
@@ -339,10 +339,22 @@
     </joint>
 
     <!-- FIXME: Define claw tool center point -->
+    <!-- <link name="claw_tcp_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <sphere radius="0.01" />
+            </geometry>
+            <material name="">
+                <color rgba="1.0 0.0 0.0 1" />
+            </material>
+        </visual>
+    </link> -->
     <link name="claw_tcp_link" />
     <joint name="claw_tcp_joint" type="fixed">
-        <origin rpy="0 0 0" xyz="0 0 0.050" />
-        <parent link="claw_base" />
+        <!-- <origin rpy="0 0 0" xyz="0 0 0.066" /> -->
+        <origin rpy="0 0 0" xyz="0 0 0.109" />
+        <parent link="flan" />
         <child link="claw_tcp_link" />
     </joint>
 </robot>

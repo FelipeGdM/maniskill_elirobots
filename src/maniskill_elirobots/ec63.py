@@ -49,7 +49,7 @@ class EC63(BaseAgent):
 
     keyframes = {
         "rest": Keyframe(
-            qpos=np.array([0.0, np.pi / 8, 0, -np.pi * 5 / 8, 0, np.pi * 3 / 4, np.pi / 4, 0.04, 0.04]),
+            qpos=[0.0, -3 * np.pi / 8, 6 * np.pi / 8, -3 * np.pi / 8, -np.pi / 2, 0, 0, 0],
             pose=sapien.Pose(),
         ),
     }
