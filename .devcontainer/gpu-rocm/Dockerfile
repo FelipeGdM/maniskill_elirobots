@@ -7,10 +7,18 @@ RUN apt update && apt install -y git fish
 
 SHELL ["/usr/bin/fish", "-c"]
 
-RUN pip install poetry
+RUN chsh -s /usr/bin/fish root
+
+RUN pip config set global.break-system-packages true
+
+RUN pip install poetry 
 
 ADD pyproject.toml .
 
 ADD poetry.lock .
 
-RUN poetry install --no-root && rm -rf $POETRY_CACHE_DIR
+RUN source /opt/venv/bin/activate.fish && poetry install --no-root && rm -rf $POETRY_CACHE_DIR
+
+# download physx GPU binary via sapien
+# RUN python3 -c "exec('import sapien.physx as physx;\ntry:\n  physx.enable_gpu()\nexcept:\n  pass;')"
+
