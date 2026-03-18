@@ -8,7 +8,7 @@ ENV UV_PYTHON=/usr/bin/python3 \
     UV_BREAK_SYSTEM_PACKAGES=true \
     UV_LINK_MODE=symlink
 
-RUN apt update && apt install -y git fish
+RUN apt update && apt install -y git fish python-is-python3
 
 SHELL ["/usr/bin/fish", "-c"]
 
@@ -24,7 +24,7 @@ ADD uv.lock .
 
 RUN uv sync --no-install-project --extra rocm71 --inexact
 
-RUN uv cache prune --ci
+# RUN uv cache prune --ci
 
 # download physx GPU binary via sapien
 RUN python3 -c "exec('import sapien.physx as physx;\ntry:\n  physx.enable_gpu()\nexcept:\n  pass;')"
