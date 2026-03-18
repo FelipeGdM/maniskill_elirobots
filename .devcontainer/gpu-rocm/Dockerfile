@@ -1,14 +1,39 @@
-# FROM rocm/pytorch:rocm7.2_ubuntu24.04_py3.13_pytorch_release_2.10.0
-# FROM rocm/pytorch:rocm7.1.1_ubuntu24.04_py3.13_pytorch_release_2.10.0
-# FROM rocm/pytorch:rocm7.1.1_ubuntu24.04_py3.12_pytorch_release_2.10.0
-FROM rocm/dev-ubuntu-24.04:7.1.1
+FROM rocm/pytorch:rocm7.1.1_ubuntu24.04_py3.12_pytorch_release_2.10.0
 
-ENV UV_PYTHON=/usr/bin/python3 \
-    UV_PROJECT_ENVIRONMENT=/usr \
-    UV_BREAK_SYSTEM_PACKAGES=true \
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv \
     UV_LINK_MODE=symlink
 
-RUN apt update && apt install -y git fish python-is-python3
+RUN apt update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    bash-completion \
+    build-essential \
+    ca-certificates \
+    cmake \
+    curl \
+    git \
+    htop \
+    libegl1 \
+    libxext6 \
+    libjpeg-dev \
+    libpng-dev  \
+    libvulkan1 \
+    rsync \
+    tmux \
+    unzip \
+    vim \
+    vulkan-tools \
+    wget \
+    xvfb \
+    fish \
+    mesa-vulkan-drivers \
+    ffmpeg \
+    libsm6 \
+    libxext6 \
+    libvulkan-dev \
+    wget \
+    libglvnd-dev \
+    libgl1 \
+    python-is-python3 \
+    && rm -rf /var/lib/apt/lists/*
 
 SHELL ["/usr/bin/fish", "-c"]
 
@@ -22,9 +47,7 @@ ADD pyproject.toml .
 
 ADD uv.lock .
 
-RUN uv sync --no-install-project --extra rocm71 --inexact
-
-# RUN uv cache prune --ci
+RUN uv sync --no-install-project --inexact
 
 # download physx GPU binary via sapien
 RUN python3 -c "exec('import sapien.physx as physx;\ntry:\n  physx.enable_gpu()\nexcept:\n  pass;')"

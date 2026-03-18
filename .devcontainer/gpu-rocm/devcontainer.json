@@ -5,7 +5,7 @@
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
 	"build": {
 		// Path is relative to the devcontainer.json file.
-		"dockerfile": "alt.Dockerfile",
+		"dockerfile": "Dockerfile",
 		"context": "../.."
 	},
 	"runArgs": [
@@ -30,7 +30,7 @@
 			]
 		}
 	},
-	// "postCreateCommand": "source /opt/venv/bin/activate.fish && poetry install"
+	"postCreateCommand": "uv sync --inexact"
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
