@@ -7,44 +7,15 @@ license = { text = "MIT" }
 readme = "README.md"
 requires-python = ">=3.10,<3.15"
 dependencies = [
-    "torch (>=2.10.0,<3.0.0)",
+    "torch>=2.10.0,<3.0.0",
     "mani-skill>=3.0.0b22,<4.0.0",
-    "setuptools (==81.0.0)",
-    "tensorboard (>=2.20.0)",
-    "pytest (>=9.0.2,<10.0.0)",
+    "setuptools==81.0.0",
+    "tensorboard>=2.20.0",
+    "pytest>=9.0.2,<10.0.0",
 ]
-
-[project.optional-dependencies]
-cpu = ["torch"]
-cu128 = ["torch"]
-rocm71 = ["torch", "triton-rocm"]
 
 [tool.uv]
-conflicts = [[{ extra = "cpu" }, { extra = "cu128" }, { extra = "rocm71" }]]
-
-[tool.uv.sources]
-torch = [
-    { index = "pytorch-cpu", extra = "cpu" },
-    { index = "pytorch-cu128", extra = "cu128" },
-    { index = "pytorch-rocm71", extra = "rocm71" },
-]
-triton-rocm = [{ index = "pytorch-rocm71", extra = "rocm71" }]
-
-[[tool.uv.index]]
-name = "pytorch-cpu"
-url = "https://download.pytorch.org/whl/cpu"
-explicit = true
-
-[[tool.uv.index]]
-name = "pytorch-cu128"
-url = "https://download.pytorch.org/whl/cu128"
-explicit = true
-
-[[tool.uv.index]]
-name = "pytorch-rocm71"
-url = "https://download.pytorch.org/whl/rocm7.1"
-explicit = true
-# url = "https://repo.radeon.com/rocm/manylinux/rocm-rel-7.1.1"
+exclude-dependencies = ["torch"]
 
 [project.scripts]
 show-robot = "maniskill_elirobots.robots.ec63:_script"
