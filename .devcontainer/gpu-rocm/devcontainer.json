@@ -30,7 +30,7 @@
 			]
 		}
 	},
-	"postCreateCommand": "poetry install"
+	// "postCreateCommand": "source /opt/venv/bin/activate.fish && poetry install"
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
