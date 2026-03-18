@@ -14,6 +14,14 @@
 		"6006:6006",
 		"--device=/dev/dri:/dev/dri"
 	],
+	"mounts": [
+		"source=/run/user/1000,target=/run/user/1000,type=bind"
+	],
+	"containerEnv": {
+		"XDG_RUNTIME_DIR": "/run/user/1000",
+		"DISPLAY": ""
+		// "DISPLAY": "${localEnv:DISPLAY}"
+	},
 	"customizations": {
 		"vscode": {
 			"extensions": [
