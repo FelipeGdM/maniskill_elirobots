@@ -12,13 +12,16 @@ dependencies = [
     "setuptools==81.0.0",
     "tensorboard>=2.20.0",
     "pytest>=9.0.2,<10.0.0",
+    "ray[rllib]==2.54.0",
 ]
 
 [tool.uv]
 exclude-dependencies = ["torch"]
+override-dependencies = ["gymnasium==1.2.2"]
 
 [project.scripts]
 show-robot = "maniskill_elirobots.robots.ec63:_script"
+# train = "maniskill_elirobots.trainer.ppo"
 
 [tool.ruff]
 # Same as Black.
