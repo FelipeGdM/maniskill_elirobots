@@ -99,7 +99,7 @@ class PushCubeEcEnv(BaseEnv):
     @override
     def _load_agent(self, options: dict):
         # set a reasonable initial pose for the agent that doesn't intersect other objects
-        super()._load_agent(options, initial_agent_poses=sapien.Pose(p=[-0.615, 0, 0]))
+        super()._load_agent(options, initial_agent_poses=sapien.Pose(p=[-0.4, 0, 0]))
 
     @override
     def _load_scene(self, options: dict):
@@ -153,9 +153,9 @@ class PushCubeEcEnv(BaseEnv):
                 init_qpos=torch.Tensor(
                     [
                         0.0,
-                        -7 * np.pi / 8,
+                        -6 * np.pi / 8,
                         5 * np.pi / 8,
-                        -2 * np.pi / 8,
+                        -3 * np.pi / 8,
                         4 * np.pi / 8,
                         0,
                         0,
@@ -166,7 +166,7 @@ class PushCubeEcEnv(BaseEnv):
 
             # here we write some randomization code that randomizes the x, y position of the cube we are pushing in the range [-0.1, -0.1] to [0.1, 0.1]
             xyz = torch.zeros((b, 3))
-            xyz[..., :2] = torch.rand((b, 2)) * 0.2 - 0.3
+            xyz[..., :2] = torch.rand((b, 2)) * 0.2 - 0.1
             xyz[..., 2] = self.cube_half_size
             q = [1, 0, 0, 0]
             # we can then create a pose object using Pose.create_from_pq to then set the cube pose with. Note that even though our quaternion
