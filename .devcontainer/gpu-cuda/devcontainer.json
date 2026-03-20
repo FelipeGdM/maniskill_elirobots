@@ -20,8 +20,8 @@
 	],
 	// Required environment variables for NVIDIA
 	"containerEnv": {
-		"NVIDIA_VISIBLE_DEVICES": "all",
 		"XDG_RUNTIME_DIR": "/run/user/1000",
+		"NVIDIA_VISIBLE_DEVICES": "all",
 		"NVIDIA_DRIVER_CAPABILITIES": "all"
 	},
 	"customizations": {
@@ -40,7 +40,7 @@
 			]
 		}
 	},
-	"postCreateCommand": "poetry install"
+	"postCreateCommand": "uv sync --inexact",
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
