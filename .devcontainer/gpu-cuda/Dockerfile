@@ -1,7 +1,7 @@
-FROM pytorch/pytorch:2.10.0-cuda13.0-cudnn9-runtime
+FROM pytorch/pytorch:2.10.0-cuda12.8-cudnn9-runtime
 
-ENV POETRY_VIRTUALENVS_CREATE=false \
-    POETRY_CACHE_DIR=/tmp/poetry_cache
+ENV UV_PROJECT_ENVIRONMENT=/usr \
+    UV_LINK_MODE=symlink
 
 RUN apt update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     bash-completion \
@@ -27,7 +27,6 @@ RUN apt update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install
     mesa-vulkan-drivers \
     ffmpeg \
     libsm6 \
-    libxext6 \
     libvulkan-dev \
     wget \
     libglvnd-dev \
@@ -40,13 +39,13 @@ RUN chsh -s /usr/bin/fish root
 
 RUN pip config set global.break-system-packages true
 
-RUN pip install poetry
+RUN pip install uv
 
 ADD pyproject.toml .
 
-ADD poetry.lock .
+ADD uv.lock .
 
-RUN poetry install --no-root && rm -rf $POETRY_CACHE_DIR
+RUN uv sync --no-install-project --inexact
 
 # download physx GPU binary via sapien
 RUN python -c "exec('import sapien.physx as physx;\ntry:\n  physx.enable_gpu()\nexcept:\n  pass;')"
