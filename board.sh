@@ -1,0 +1,1 @@
+tensorboard --bind_all --logdir ./runs
