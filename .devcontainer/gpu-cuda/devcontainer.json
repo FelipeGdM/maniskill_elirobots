@@ -13,7 +13,8 @@
 		"all",
 		"-p",
 		"6006:6006",
-		"--runtime=nvidia"
+		"--runtime=nvidia",
+		"--shm-size=5gb"
 	],
 	"mounts": [
 		"source=/run/user/1000,target=/run/user/1000,type=bind"
