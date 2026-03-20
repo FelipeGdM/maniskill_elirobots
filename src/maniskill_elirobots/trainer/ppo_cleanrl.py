@@ -207,8 +207,10 @@ if __name__ == "__main__":
     env_kwargs = {"obs_mode": "state", "render_mode": "rgb_array", "sim_backend": "physx_cuda"}
     if args.control_mode is not None:
         env_kwargs["control_mode"] = args.control_mode
+
     envs = gym.make(args.env_id, robot_uids=ROBOT_UID, num_envs=args.num_envs if not args.evaluate else 1, reconfiguration_freq=args.reconfiguration_freq, **env_kwargs)
     eval_envs = gym.make(args.env_id, robot_uids=ROBOT_UID, num_envs=args.num_eval_envs, reconfiguration_freq=args.eval_reconfiguration_freq, **env_kwargs)
+
     if isinstance(envs.action_space, gym.spaces.Dict):
         envs = FlattenActionSpaceWrapper(envs)
         eval_envs = FlattenActionSpaceWrapper(eval_envs)
