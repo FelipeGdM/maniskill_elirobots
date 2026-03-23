@@ -36,13 +36,14 @@
 		// Optional: mount the entire runtime dir if needed
 		"source=/run/user/1000,target=/run/user/1000,type=bind",
 		"source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind",
-		"source=${env:XAUTHORITY},target=/root/.Xauthority,type=bind,readonly"
+		// "source=${env:XAUTHORITY},target=/root/.Xauthority,type=bind,readonly"
 	],
 	// Environment variables for Wayland
 	"containerEnv": {
 		"WAYLAND_DISPLAY": "wayland-0",
 		"XDG_RUNTIME_DIR": "/run/user/1000",
-		"DISPLAY": "${localEnv:DISPLAY}"
+		"DISPLAY": ""
+		// "DISPLAY": "${localEnv:DISPLAY}"
 		// "VK_ICD_FILENAMES": "/usr/share/vulkan/icd.d/intel_icd.x86_64.json"
 	},
 	"postCreateCommand": "poetry install"
