@@ -17,7 +17,7 @@ dependencies = [
 
 [tool.uv]
 exclude-dependencies = ["torch"]
-override-dependencies = ["gymnasium==1.2.2"]
+override-dependencies = ["gymnasium==0.29.1"]
 
 [project.scripts]
 show-robot = "maniskill_elirobots.robots.ec63:_script"
