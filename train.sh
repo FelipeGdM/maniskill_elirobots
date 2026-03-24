@@ -4,7 +4,7 @@
     # --total_timesteps=1_200_000 \
 
 
-python src/maniskill_elirobots/scripts/ppo.py \
+python src/maniskill_elirobots/trainer/ppo_cleanrl.py \
     --env_id="PushCubeEc-v1" \
     --num_envs=1024 \
     --update_epochs=8 \
