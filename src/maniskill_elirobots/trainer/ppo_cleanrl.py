@@ -184,8 +184,7 @@ class Logger:
         self.writer.close()
 
 
-if __name__ == "__main__":
-    args = tyro.cli(Args)
+def main(args: Args):
     args.batch_size = int(args.num_envs * args.num_steps)
     args.minibatch_size = int(args.batch_size // args.num_minibatches)
     args.num_iterations = args.total_timesteps // args.batch_size
@@ -476,3 +475,8 @@ if __name__ == "__main__":
         logger.close()
     envs.close()
     eval_envs.close()
+
+
+if __name__ == "__main__":
+    args = tyro.cli(Args)  # pyright: ignore[reportAny]
+    main(args)
