@@ -46,7 +46,7 @@
 		// "DISPLAY": "${localEnv:DISPLAY}"
 		// "VK_ICD_FILENAMES": "/usr/share/vulkan/icd.d/intel_icd.x86_64.json"
 	},
-	"postCreateCommand": "poetry install"
+	"postCreateCommand": "uv sync --inexact"
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
