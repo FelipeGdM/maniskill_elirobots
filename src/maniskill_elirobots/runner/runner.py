@@ -76,9 +76,9 @@ CHECKPOINT = "/workspaces/maniskill_elirobots/runs/PushCubeEc-v1__ppo__1__177402
 ENV_ID = "PushCubeEc-v1"
 ROBOT_UID = "ec63"
 
-model = cast("OrderedDict[str, torch.Tensor]", torch.load(CHECKPOINT, map_location=torch.device("cpu")))
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+model = cast("OrderedDict[str, torch.Tensor]", torch.load(CHECKPOINT, map_location=device))
 
 agent = Agent(OBSERVATION_SPACE_SIZE, ACTION_SPACE_SIZE).to(device)
 
