@@ -78,23 +78,14 @@ ROBOT_UID = "ec63"
 
 model = cast("OrderedDict[str, torch.Tensor]", torch.load(CHECKPOINT, map_location=torch.device("cpu")))
 
-for key in model:
-    print(f"{key}: {model[key].shape}")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# env_kwargs = {"obs_mode": "state", "render_mode": "rgb_array", "sim_backend": "physx_cpu"}
+agent = Agent(OBSERVATION_SPACE_SIZE, ACTION_SPACE_SIZE).to(device)
 
-# gym_envs = FlattenActionSpaceWrapper(gym.make(ENV_ID, robot_uids=ROBOT_UID, num_envs=1, **env_kwargs))
+_ = agent.load_state_dict(model)
 
-# envs = ManiSkillVectorEnv(gym_envs, 1, ignore_terminations=True, record_metrics=True)
+state = torch.zeros((1, OBSERVATION_SPACE_SIZE)).to(device)
 
-# print(f"{envs.single_observation_space.shape=}")
+action = agent.get_action(state, deterministic=True)
 
-# print(f"{envs.single_action_space.shape=}")
-
-# print(model)
-
-# print(type(model))
-
-# for key in model:
-#     # print(f"{type(key)=}: {type(model[key])=}")
-#     print(key)
+print(action)
