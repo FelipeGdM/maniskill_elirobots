@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from mani_skill.utils.wrappers.flatten import FlattenActionSpaceWrapper
 from mani_skill.vector.wrappers.gymnasium import ManiSkillVectorEnv
-from torch import nn
+from torch import Tensor, nn
 from torch.distributions.normal import Normal
 
 from maniskill_elirobots import EC63
@@ -20,6 +20,10 @@ def layer_init(layer: nn.Module, std: float = SQRT_2, bias_const: float = 0.0):
     _ = torch.nn.init.orthogonal_(layer.weight, std)
     _ = torch.nn.init.constant_(layer.bias, bias_const)
     return layer
+
+
+def build_state(qpos: Tensor, qvel: Tensor, tcp_pose: Tensor, goal_pos: Tensor, obj_pose: Tensor):
+    return torch.cat((qpos, qvel, tcp_pose, goal_pos, obj_pose), -1)
 
 
 class Agent(nn.Module):
@@ -47,11 +51,11 @@ class Agent(nn.Module):
         )
         self.actor_logstd = nn.Parameter(torch.ones(1, action_space_size) * -0.5)
 
-    def get_value(self, x: torch.Tensor) -> torch.Tensor:
-        return cast("torch.Tensor", self.critic(x))
+    def get_value(self, x: Tensor) -> Tensor:
+        return cast("Tensor", self.critic(x))
 
-    def get_action(self, x: torch.Tensor, deterministic: bool = False):  # noqa: FBT001, FBT002
-        action_mean = cast("torch.Tensor", self.actor_mean(x))
+    def get_action(self, x: Tensor, deterministic: bool = False):  # noqa: FBT001, FBT002
+        action_mean = cast("Tensor", self.actor_mean(x))
         if deterministic:
             return action_mean
         action_logstd = self.actor_logstd.expand_as(action_mean)
@@ -59,8 +63,8 @@ class Agent(nn.Module):
         probs = Normal(action_mean, action_std)
         return probs.sample()
 
-    def get_action_and_value(self, x: torch.Tensor, action: torch.Tensor | None = None):
-        action_mean = cast("torch.Tensor", self.actor_mean(x))
+    def get_action_and_value(self, x: Tensor, action: Tensor | None = None):
+        action_mean = cast("Tensor", self.actor_mean(x))
         action_logstd = self.actor_logstd.expand_as(action_mean)
         action_std = torch.exp(action_logstd)
         probs = Normal(action_mean, action_std)
@@ -78,13 +82,23 @@ ROBOT_UID = "ec63"
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-model = cast("OrderedDict[str, torch.Tensor]", torch.load(CHECKPOINT, map_location=device))
+model = cast("OrderedDict[str, Tensor]", torch.load(CHECKPOINT, map_location=device))
 
 agent = Agent(OBSERVATION_SPACE_SIZE, ACTION_SPACE_SIZE).to(device)
 
 _ = agent.load_state_dict(model)
 
-state = torch.zeros((1, OBSERVATION_SPACE_SIZE)).to(device)
+qpos = Tensor(EC63.keyframes["rest"].qpos).reshape((1, 8))
+
+qvel = torch.zeros((1, 8))
+
+tcp_pose = Tensor([[-2.5641e-01, 1.0300e-01, 2.3089e-01, -2.6125e-06, -7.0711e-01, 7.0711e-01, -7.7824e-08]])
+
+goal_pos = Tensor([[0.1792, 0.0844, 0.0010]])
+
+obj_pose = Tensor([[-0.0208, 0.0844, 0.0200, 1.0000, 0.0000, 0.0000, 0.0000]])
+
+state = build_state(qpos, qvel, tcp_pose, goal_pos, obj_pose).to(device)
 
 action = agent.get_action(state, deterministic=True)
 
