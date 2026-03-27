@@ -15,16 +15,15 @@ in addition to initializing any task relevant data like a goal
 See comments for how to make your own environment and what each required function should do
 """
 
-from typing import Any, Union, override
+from typing import Any, cast, override
 
 import numpy as np
 import sapien
 import torch
-import torch.random
 from mani_skill.agents.robots import Fetch, Panda
 from mani_skill.envs.sapien_env import BaseEnv
 from mani_skill.sensors.camera import CameraConfig
-from mani_skill.utils import common, sapien_utils
+from mani_skill.utils import sapien_utils
 from mani_skill.utils.building import actors
 from mani_skill.utils.registration import register_env
 from mani_skill.utils.scene_builder.table import TableSceneBuilder
@@ -186,19 +185,21 @@ class PushCubeEcEnv(BaseEnv):
                 Pose.create_from_pq(
                     p=target_region_xyz,
                     q=euler2quat(0, np.pi / 2, 0),
-                )
+                ),
             )
 
+    @override
     def evaluate(self):
         # success is achieved when the cube's xy position on the table is within the
         # goal region's area (a circle centered at the goal region's xy position) and
         # the cube is still on the surface
-        is_obj_placed = (torch.linalg.norm(self.obj.pose.p[..., :2] - self.goal_region.pose.p[..., :2], axis=1) < self.goal_radius) & (self.obj.pose.p[..., 2] < self.cube_half_size + 5e-3)
+        is_obj_placed = cast("bool", (torch.linalg.norm(self.obj.pose.p[..., :2] - self.goal_region.pose.p[..., :2], axis=1) < self.goal_radius) & (self.obj.pose.p[..., 2] < self.cube_half_size + 5e-3))
 
         return {
             "success": is_obj_placed,
         }
 
+    @override
     def _get_obs_extra(self, info: dict):
         # some useful observation info for solving the task includes the pose of the tcp (tool center point) which is the point between the
         # grippers of the robot
@@ -214,6 +215,7 @@ class PushCubeEcEnv(BaseEnv):
             )
         return obs
 
+    @override
     def compute_dense_reward(self, obs: Any, action: Array, info: dict):
         # We also create a pose marking where the robot should push the cube from that is easiest (pushing from behind the cube)
         tcp_push_pose = Pose.create_from_pq(p=self.obj.pose.p + torch.tensor([-self.cube_half_size - 0.005, 0, 0], device=self.device))
@@ -244,6 +246,7 @@ class PushCubeEcEnv(BaseEnv):
         reward[info["success"]] = 4
         return reward
 
+    @override
     def compute_normalized_dense_reward(self, obs: Any, action: Array, info: dict):
         # this should be equal to compute_dense_reward / max possible reward
         max_reward = 4.0
