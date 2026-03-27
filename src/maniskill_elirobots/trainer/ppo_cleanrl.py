@@ -22,7 +22,9 @@ from mani_skill.vector.wrappers.gymnasium import ManiSkillVectorEnv
 from torch.distributions.normal import Normal
 from torch.utils.tensorboard import SummaryWriter
 
-from maniskill_elirobots.robots import ec63
+import maniskill_elirobots
+
+gym.register_envs(maniskill_elirobots)
 
 ROBOT_UID = "panda"
 ROBOT_UID = "ec63"  # pyright: ignore[reportConstantRedefinition]
@@ -76,7 +78,7 @@ class Args:
     """how often to reconfigure the environment during training"""
     eval_reconfiguration_freq: Optional[int] = 1
     """for benchmarking purposes we want to reconfigure the eval environment each reset to ensure objects are randomized in some tasks"""
-    control_mode: Optional[str] = "pd_joint_delta_pos"
+    control_mode: Optional[str] = "pd_joint_pos"
     """the control mode to use for the environment"""
     anneal_lr: bool = False
     """Toggle learning rate annealing for policy and value networks"""
@@ -203,9 +205,12 @@ def main(args: Args):
     device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
 
     # env setup
-    env_kwargs = {"obs_mode": "state", "render_mode": "rgb_array", "sim_backend": "physx_cuda"}
-    if args.control_mode is not None:
-        env_kwargs["control_mode"] = args.control_mode
+    env_kwargs = {
+        "obs_mode": "state",
+        "render_mode": "rgb_array",
+        "sim_backend": "physx_cuda",
+        "control_mode": "pd_joint_pos",
+    }
 
     envs = gym.make(args.env_id, robot_uids=ROBOT_UID, num_envs=args.num_envs if not args.evaluate else 1, reconfiguration_freq=args.reconfiguration_freq, **env_kwargs)
     eval_envs = gym.make(args.env_id, robot_uids=ROBOT_UID, num_envs=args.num_eval_envs, reconfiguration_freq=args.eval_reconfiguration_freq, **env_kwargs)
