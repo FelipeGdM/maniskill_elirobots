@@ -224,6 +224,8 @@ class PushCubeEcEnv(BaseEnv):
         reaching_reward = 1 - torch.tanh(5 * tcp_to_push_pose_dist)
         reward = reaching_reward
 
+        cube_velocity = torch.linalg.norm(self.obj.linear_velocity)
+
         # compute a placement reward to encourage robot to move the cube to the center of the goal region
         # we further multiply the place_reward by a mask reached so we only add the place reward if the robot has reached the desired push pose
         # This reward design helps train RL agents faster by staging the reward out.
@@ -241,6 +243,8 @@ class PushCubeEcEnv(BaseEnv):
         #   we only add the z reward if the robot has reached the desired push pose
         #   and the z reward becomes more important as the robot gets closer to the goal.
         reward += place_reward * z_reward * reached
+
+        reward *= 1 - torch.tanh(cube_velocity / 10)
 
         # assign rewards to parallel environments that achieved success to the maximum of 3.
         reward[info["success"]] = 4

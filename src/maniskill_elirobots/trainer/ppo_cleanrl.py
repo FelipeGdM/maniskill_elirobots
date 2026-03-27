@@ -209,7 +209,7 @@ def main(args: Args):
         "obs_mode": "state",
         "render_mode": "rgb_array",
         "sim_backend": "physx_cuda",
-        "control_mode": "pd_joint_pos",
+        "control_mode": "pd_joint_delta_pos",
     }
 
     envs = gym.make(args.env_id, robot_uids=ROBOT_UID, num_envs=args.num_envs if not args.evaluate else 1, reconfiguration_freq=args.reconfiguration_freq, **env_kwargs)
