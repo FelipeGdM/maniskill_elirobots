@@ -78,22 +78,28 @@ class EC63(BaseAgent):
     @override
     def _controller_configs(self):  # pyright: ignore[reportIncompatibleMethodOverride]
         arm_pd_joint_pos = PDJointPosControllerConfig(
-            self.arm_joint_names,
+            joint_names=self.arm_joint_names,
             lower=None,
             upper=None,
             stiffness=self.arm_stiffness,
             damping=self.arm_damping,
             force_limit=self.arm_force_limit,
-            normalize_action=False,
+            normalize_action=True,
         )
         arm_pd_joint_delta_pos = PDJointPosControllerConfig(
-            self.arm_joint_names,
-            lower=-0.1,
-            upper=0.1,
+            joint_names=self.arm_joint_names,
+            lower=None,
+            upper=None,
+            # lower=-0.1,
+            # upper=0.1,
             stiffness=self.arm_stiffness,
             damping=self.arm_damping,
             force_limit=self.arm_force_limit,
+            normalize_action=False,
             use_delta=True,
+            use_target=True,
+            # drive_mode="force",
+            # drive_mode="acceleration",
         )
         gripper_pd_joint_pos = PDJointPosMimicControllerConfig(
             self.gripper_joint_names,
