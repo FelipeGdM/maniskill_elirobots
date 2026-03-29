@@ -216,7 +216,7 @@ class PushCubeEcEnv(BaseEnv):
         return obs
 
     @override
-    def compute_dense_reward(self, obs: Any, action: Array, info: dict):
+    def compute_dense_reward(self, obs: Any, action: Array, info: dict) -> torch.Tensor:
         # We also create a pose marking where the robot should push the cube from that is easiest (pushing from behind the cube)
         tcp_push_pose = Pose.create_from_pq(p=self.obj.pose.p + torch.tensor([-self.cube_half_size - 0.005, 0, 0], device=self.device))
         tcp_to_push_pose = tcp_push_pose.p - self.agent.tcp.pose.p
@@ -224,11 +224,9 @@ class PushCubeEcEnv(BaseEnv):
         reaching_reward = 1 - torch.tanh(5 * tcp_to_push_pose_dist)
         reward = reaching_reward
 
-        cube_velocity = torch.linalg.norm(self.obj.linear_velocity)
-
         # compute a placement reward to encourage robot to move the cube to the center of the goal region
         # we further multiply the place_reward by a mask reached so we only add the place reward if the robot has reached the desired push pose
-        # This reward design helps train RL agents faster by staging the reward out.
+        # This reward design helps train RL agents fasrobot:ter by staging the reward out.
         reached = tcp_to_push_pose_dist < 0.01
         obj_to_goal_dist = torch.linalg.norm(self.obj.pose.p[..., :2] - self.goal_region.pose.p[..., :2], axis=1)
         place_reward = 1 - torch.tanh(5 * obj_to_goal_dist)
@@ -244,11 +242,19 @@ class PushCubeEcEnv(BaseEnv):
         #   and the z reward becomes more important as the robot gets closer to the goal.
         reward += place_reward * z_reward * reached
 
-        reward *= 1 - torch.tanh(cube_velocity / 10)
+        cube_velocity_penalty = 1e-1
+        cube_velocity = torch.linalg.norm(self.obj.linear_velocity)
+
+        reward -= torch.tanh(cube_velocity_penalty * cube_velocity)
+
+        energy_penalty = 1e-1
+        # energy = torch.linalg.norm(self.agent.robot.qvel)
+        energy = torch.linalg.norm(self.agent.robot.qvel)
+
+        reward -= torch.tanh(energy_penalty * energy)
 
         # assign rewards to parallel environments that achieved success to the maximum of 3.
-        reward[info["success"]] = 4
-        return reward
+        return torch.clamp(reward, -4, 4)
 
     @override
     def compute_normalized_dense_reward(self, obs: Any, action: Array, info: dict):

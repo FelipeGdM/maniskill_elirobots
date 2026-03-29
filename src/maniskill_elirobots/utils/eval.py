@@ -73,7 +73,7 @@ for episode_num in range(NUM_EVAL_EPISODES):
         # action[0][0] = 1 / env.unwrapped.control_freq if step_count < 25 else 0  # noqa: PLR2004
         # action[0][0] = 2 / EPISODE_SIZE if step_count < EPISODE_SIZE / 2 else 0
         # action[0][0] = 1.0 if step_count < EPISODE_SIZE / 2 else 0
-        action[0][0] = 0.1
+        action[0][0] = 0.0
         # action[0][0] = 1e-2 / MAX_ANG_POS
         # print(f"{step_count}: {action[0][0]=}")
         # print(action)
@@ -81,6 +81,13 @@ for episode_num in range(NUM_EVAL_EPISODES):
         obs, reward, terminated, truncated, info = env.step(action)
         # print(info)
         obs_list.append(obs)
+
+        print(f"{reward=}")
+
+        qvel = torch.linalg.norm(obs.cpu().flatten()[8:16])
+
+        print(f"{qvel=}")
+        print(f"{torch.tanh(qvel)=}")
 
         # print(obs)
         # episode_reward += reward
@@ -121,8 +128,8 @@ plt.savefig(f"{OUTPUT_FOLDER}/tcp_pose.png")
 
 plt.clf()
 
-print(f"{qpos[-1][0] - 5.0=}")
-print(f"{qvel[-1][0]=}")
+# print(f"{qpos[-1][0]=}")
+# print(f"{qvel[-1][0]=}")
 # Print summary statistics
 # print(f"\nEvaluation Summary:")
 # print(f"Episode durations: {list(env.time_queue)}")
