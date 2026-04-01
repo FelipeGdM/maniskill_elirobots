@@ -15,6 +15,7 @@ in addition to initializing any task relevant data like a goal
 See comments for how to make your own environment and what each required function should do
 """
 
+import copy
 from typing import Any, cast, override
 
 import numpy as np
@@ -62,6 +63,7 @@ class PushCubeEcEnv(BaseEnv):
     def __init__(self, *args, robot_uids="panda", robot_init_qpos_noise=0.02, **kwargs):  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
         # specifying robot_uids="panda" as the default means gym.make("PushCube-v1") will default to using the panda arm.
         self.robot_init_qpos_noise = robot_init_qpos_noise
+        self.last_info = None
         super().__init__(*args, robot_uids=robot_uids, **kwargs)  # pyright: ignore[reportUnknownArgumentType]
 
     # Specify default simulation/gpu memory configurations to override any default values
@@ -189,14 +191,22 @@ class PushCubeEcEnv(BaseEnv):
             )
 
     @override
+    def get_info(self) -> dict:
+        info = super().get_info()
+
+        info.update({"cube": torch.linalg.norm(self.obj.linear_velocity, dim=1)})
+
+        return info
+
+    @override
     def evaluate(self):
         # success is achieved when the cube's xy position on the table is within the
         # goal region's area (a circle centered at the goal region's xy position) and
         # the cube is still on the surface
-        is_obj_placed = cast("bool", (torch.linalg.norm(self.obj.pose.p[..., :2] - self.goal_region.pose.p[..., :2], axis=1) < self.goal_radius) & (self.obj.pose.p[..., 2] < self.cube_half_size + 5e-3))
-
+        is_obj_placed = cast("torch.Tensor", (torch.linalg.norm(self.obj.pose.p[..., :2] - self.goal_region.pose.p[..., :2], axis=1) < self.goal_radius) & (self.obj.pose.p[..., 2] < self.cube_half_size + 5e-3))
+        is_obj_stopped = cast("torch.Tensor", torch.linalg.norm(self.obj.linear_velocity, dim=1) < 0.2)
         return {
-            "success": is_obj_placed,
+            "success": torch.logical_and(is_obj_placed, is_obj_stopped),
         }
 
     @override
@@ -226,7 +236,7 @@ class PushCubeEcEnv(BaseEnv):
 
         # compute a placement reward to encourage robot to move the cube to the center of the goal region
         # we further multiply the place_reward by a mask reached so we only add the place reward if the robot has reached the desired push pose
-        # This reward design helps train RL agents fasrobot:ter by staging the reward out.
+        # This reward design helps train RL agents fasrter by staging the reward out.
         reached = tcp_to_push_pose_dist < 0.01
         obj_to_goal_dist = torch.linalg.norm(self.obj.pose.p[..., :2] - self.goal_region.pose.p[..., :2], axis=1)
         place_reward = 1 - torch.tanh(5 * obj_to_goal_dist)
@@ -242,14 +252,15 @@ class PushCubeEcEnv(BaseEnv):
         #   and the z reward becomes more important as the robot gets closer to the goal.
         reward += place_reward * z_reward * reached
 
-        cube_velocity_penalty = 1e-1
-        cube_velocity = torch.linalg.norm(self.obj.linear_velocity)
+        reward[info["success"]] = 4.0
+
+        cube_velocity_penalty = 5e-1
+        cube_velocity = torch.linalg.norm(self.obj.linear_velocity, dim=1)
 
         reward -= torch.tanh(cube_velocity_penalty * cube_velocity)
 
-        energy_penalty = 1e-1
-        # energy = torch.linalg.norm(self.agent.robot.qvel)
-        energy = torch.linalg.norm(self.agent.robot.qvel)
+        energy_penalty = 5e-1
+        energy = torch.linalg.norm(self.agent.robot.qvel, dim=1) ** 2
 
         reward -= torch.tanh(energy_penalty * energy)
 
