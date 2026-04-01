@@ -77,47 +77,50 @@ class EC63(BaseAgent):
     @property
     @override
     def _controller_configs(self):  # pyright: ignore[reportIncompatibleMethodOverride]
-        arm_pd_joint_pos = PDJointPosControllerConfig(
-            joint_names=self.arm_joint_names,
-            lower=None,
-            upper=None,
-            stiffness=self.arm_stiffness,
-            damping=self.arm_damping,
-            force_limit=self.arm_force_limit,
-            normalize_action=True,
-        )
-        arm_pd_joint_delta_pos = PDJointPosControllerConfig(
-            joint_names=self.arm_joint_names,
-            # lower=None,
-            # upper=None,
-            lower=-0.1,
-            upper=0.1,
-            stiffness=self.arm_stiffness,
-            damping=self.arm_damping,
-            force_limit=self.arm_force_limit,
-            normalize_action=True,
-            use_delta=True,
-            use_target=True,
-            # drive_mode="force",
-            # drive_mode="acceleration",
-        )
-        gripper_pd_joint_pos = PDJointPosMimicControllerConfig(
-            self.gripper_joint_names,
-            lower=-0.01,  # a trick to have force when the object is thin
-            upper=0.04,
-            stiffness=self.gripper_stiffness,
-            damping=self.gripper_damping,
-            force_limit=self.gripper_force_limit,
-        )
-
         controller_configs = {
-            "pd_joint_delta_pos": {
-                "arm": arm_pd_joint_delta_pos,
-                "gripper": gripper_pd_joint_pos,
-            },
             "pd_joint_pos": {
-                "arm": arm_pd_joint_pos,
-                "gripper": gripper_pd_joint_pos,
+                "arm": PDJointPosControllerConfig(
+                    joint_names=self.arm_joint_names,
+                    lower=None,
+                    upper=None,
+                    stiffness=self.arm_stiffness,
+                    damping=self.arm_damping,
+                    force_limit=self.arm_force_limit,
+                    normalize_action=False,
+                ),
+                "gripper": PDJointPosMimicControllerConfig(
+                    self.gripper_joint_names,
+                    lower=-0.01,  # a trick to have force when the object is thin
+                    upper=0.04,
+                    stiffness=self.gripper_stiffness,
+                    damping=self.gripper_damping,
+                    force_limit=self.gripper_force_limit,
+                ),
+            },
+            "pd_joint_delta_pos": {
+                "arm": PDJointPosControllerConfig(
+                    joint_names=self.arm_joint_names,
+                    # lower=None,
+                    # upper=None,
+                    lower=-0.5,
+                    upper=0.5,
+                    stiffness=self.arm_stiffness,
+                    damping=self.arm_damping,
+                    force_limit=self.arm_force_limit,
+                    # normalize_action=True,
+                    use_delta=True,
+                    use_target=True,
+                    # drive_mode="force",
+                    # drive_mode="acceleration",
+                ),
+                "gripper": PDJointPosMimicControllerConfig(
+                    self.gripper_joint_names,
+                    lower=-0.01,  # a trick to have force when the object is thin
+                    upper=0.04,
+                    stiffness=self.gripper_stiffness,
+                    damping=self.gripper_damping,
+                    force_limit=self.gripper_force_limit,
+                ),
             },
         }
 
