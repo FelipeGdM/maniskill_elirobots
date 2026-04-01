@@ -1,3 +1,115 @@
+import copy
+import time
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Callable, Optional, Union
+
+import gymnasium as gym
+import h5py
+import numpy as np
+import sapien.physx as physx
+import torch
+
+from mani_skill import get_commit_info
+from mani_skill.envs.sapien_env import BaseEnv
+from mani_skill.utils import common, gym_utils, sapien_utils
+from mani_skill.utils.io_utils import dump_json
+from mani_skill.utils.logging_utils import logger
+from mani_skill.utils.structs.types import Array
+from mani_skill.utils.visualization.misc import (
+    images_to_video,
+    put_info_on_image,
+    tile_images,
+)
+from mani_skill.utils.wrappers import CPUGymWrapper
+
+# NOTE (stao): The code for record.py is quite messy and perhaps confusing as it is trying to support both recording on CPU and GPU seamlessly
+# and handle partial resets. It works but can be claned up a lot.
+
+
+def parse_env_info(env: gym.Env):
+    # spec can be None if not initialized from gymnasium.make
+    env = env.unwrapped
+    if env.spec is None:
+        return None
+    if hasattr(env.spec, "_kwargs"):
+        # gym<=0.21
+        env_kwargs = env.spec._kwargs
+    else:
+        # gym>=0.22
+        env_kwargs = env.spec.kwargs
+    return dict(
+        env_id=env.spec.id,
+        env_kwargs=env_kwargs,
+    )
+
+
+def temp_deep_print_shapes(x, prefix=""):
+    if isinstance(x, dict):
+        for k in x:
+            temp_deep_print_shapes(x[k], prefix=prefix + "/" + k)
+    else:
+        print(prefix, x.shape)
+
+
+def clean_trajectories(h5_file: h5py.File, json_dict: dict, prune_empty_action=True):
+    """Clean trajectories by renaming and pruning trajectories in place.
+
+    After cleanup, trajectory names are consecutive integers (traj_0, traj_1, ...),
+    and trajectories with empty action are pruned.
+
+    Args:
+        h5_file: raw h5 file
+        json_dict: raw JSON dict
+        prune_empty_action: whether to prune trajectories with empty action
+    """
+    json_episodes = json_dict["episodes"]
+    assert len(h5_file) == len(json_episodes)
+
+    # Assumes each trajectory is named "traj_{i}"
+    prefix_length = len("traj_")
+    ep_ids = sorted([int(x[prefix_length:]) for x in h5_file.keys()])
+
+    new_json_episodes = []
+    new_ep_id = 0
+
+    for i, ep_id in enumerate(ep_ids):
+        traj_id = f"traj_{ep_id}"
+        ep = json_episodes[i]
+        assert ep["episode_id"] == ep_id
+        new_traj_id = f"traj_{new_ep_id}"
+
+        if prune_empty_action and ep["elapsed_steps"] == 0:
+            del h5_file[traj_id]
+            continue
+
+        if new_traj_id != traj_id:
+            ep["episode_id"] = new_ep_id
+            h5_file[new_traj_id] = h5_file[traj_id]
+            del h5_file[traj_id]
+
+        new_json_episodes.append(ep)
+        new_ep_id += 1
+
+    json_dict["episodes"] = new_json_episodes
+
+
+@dataclass
+class Step:
+    state: np.ndarray
+    observation: np.ndarray
+    action: np.ndarray
+    reward: np.ndarray
+    terminated: np.ndarray
+    truncated: np.ndarray
+    done: np.ndarray
+    env_episode_ptr: np.ndarray
+    """points to index in above data arrays where current episode started (any data before should already be flushed)"""
+
+    success: np.ndarray = None
+    fail: np.ndarray = None
+
+
 class RecordEpisode(gym.Wrapper):
     """Record trajectories or videos for episodes. You generally should always apply this wrapper last, particularly if you include
     observation wrappers which modify the returned observations. The only wrappers that may go after this one is any of the vector env

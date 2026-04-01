@@ -17,12 +17,14 @@ import torch.optim as optim
 import tyro
 from mani_skill.utils import gym_utils
 from mani_skill.utils.wrappers.flatten import FlattenActionSpaceWrapper
-from mani_skill.utils.wrappers.record import RecordEpisode
 from mani_skill.vector.wrappers.gymnasium import ManiSkillVectorEnv
 from torch.distributions.normal import Normal
 from torch.utils.tensorboard import SummaryWriter
 
 import maniskill_elirobots
+
+# from mani_skill.utils.wrappers.record import RecordEpisode
+from maniskill_elirobots.utils.episode_logger import RecordEpisode
 
 gym.register_envs(maniskill_elirobots)
 
@@ -209,7 +211,7 @@ def main(args: Args):
         "obs_mode": "state",
         "render_mode": "rgb_array",
         "sim_backend": "physx_cuda",
-        "control_mode": "pd_joint_delta_pos",
+        "control_mode": args.control_mode,
     }
 
     envs = gym.make(args.env_id, robot_uids=ROBOT_UID, num_envs=args.num_envs if not args.evaluate else 1, reconfiguration_freq=args.reconfiguration_freq, **env_kwargs)
