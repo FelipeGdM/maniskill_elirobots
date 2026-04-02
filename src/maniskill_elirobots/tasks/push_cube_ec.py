@@ -100,7 +100,7 @@ class PushCubeEcEnv(BaseEnv):
     @override
     def _load_agent(self, options: dict):
         # set a reasonable initial pose for the agent that doesn't intersect other objects
-        super()._load_agent(options, initial_agent_poses=sapien.Pose(p=[-0.4, 0, 0]))
+        super()._load_agent(options, initial_agent_poses=sapien.Pose(p=[-0.360, 0, 0]))
 
     @override
     def _load_scene(self, options: dict):
@@ -204,7 +204,7 @@ class PushCubeEcEnv(BaseEnv):
         # goal region's area (a circle centered at the goal region's xy position) and
         # the cube is still on the surface
         is_obj_placed = cast("torch.Tensor", (torch.linalg.norm(self.obj.pose.p[..., :2] - self.goal_region.pose.p[..., :2], axis=1) < self.goal_radius) & (self.obj.pose.p[..., 2] < self.cube_half_size + 5e-3))
-        is_obj_stopped = cast("torch.Tensor", torch.linalg.norm(self.obj.linear_velocity, dim=1) < 0.2)
+        is_obj_stopped = cast("torch.Tensor", torch.linalg.norm(self.obj.linear_velocity, dim=1) < 0.1)
         return {
             "success": torch.logical_and(is_obj_placed, is_obj_stopped),
         }
@@ -254,18 +254,18 @@ class PushCubeEcEnv(BaseEnv):
 
         reward[info["success"]] = 4.0
 
-        cube_velocity_penalty = 5e-1
-        cube_velocity = torch.linalg.norm(self.obj.linear_velocity, dim=1)
+        # cube_velocity_penalty = 1e-1
+        # cube_velocity = torch.linalg.norm(self.obj.linear_velocity, dim=1) ** 2
 
-        reward -= torch.tanh(cube_velocity_penalty * cube_velocity)
+        # reward -= torch.tanh(cube_velocity_penalty * cube_velocity)
 
-        energy_penalty = 5e-1
+        energy_penalty = 1
         energy = torch.linalg.norm(self.agent.robot.qvel, dim=1) ** 2
 
         reward -= torch.tanh(energy_penalty * energy)
 
         # assign rewards to parallel environments that achieved success to the maximum of 3.
-        return torch.clamp(reward, -4, 4)
+        return torch.clamp(reward, -4, 4) - 4
 
     @override
     def compute_normalized_dense_reward(self, obs: Any, action: Array, info: dict):

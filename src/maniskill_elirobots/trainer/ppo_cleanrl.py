@@ -28,9 +28,6 @@ from maniskill_elirobots.utils.episode_logger import RecordEpisode
 
 gym.register_envs(maniskill_elirobots)
 
-ROBOT_UID = "panda"
-ROBOT_UID = "ec63"  # pyright: ignore[reportConstantRedefinition]
-
 
 @dataclass
 class Args:
@@ -60,6 +57,8 @@ class Args:
     # Algorithm specific arguments
     env_id: str = "PickCube-v1"
     """the id of the environment"""
+    robot_uid: str = "ec63"
+    """robot unique id"""
     total_timesteps: int = 10000000
     """total timesteps of the experiments"""
     learning_rate: float = 3e-4
@@ -68,7 +67,7 @@ class Args:
     """the number of parallel environments"""
     num_eval_envs: int = 8
     """the number of parallel evaluation environments"""
-    partial_reset: bool = True
+    partial_reset: bool = False
     """whether to let parallel environments reset upon termination instead of truncation"""
     eval_partial_reset: bool = False
     """whether to let parallel evaluation environments reset upon termination instead of truncation"""
@@ -214,8 +213,20 @@ def main(args: Args):
         "control_mode": args.control_mode,
     }
 
-    envs = gym.make(args.env_id, robot_uids=ROBOT_UID, num_envs=args.num_envs if not args.evaluate else 1, reconfiguration_freq=args.reconfiguration_freq, **env_kwargs)
-    eval_envs = gym.make(args.env_id, robot_uids=ROBOT_UID, num_envs=args.num_eval_envs, reconfiguration_freq=args.eval_reconfiguration_freq, **env_kwargs)
+    envs = gym.make(
+        args.env_id,
+        robot_uids=args.robot_uid,
+        num_envs=args.num_envs if not args.evaluate else 1,
+        reconfiguration_freq=args.reconfiguration_freq,
+        **env_kwargs,
+    )
+    eval_envs = gym.make(
+        args.env_id,
+        robot_uids=args.robot_uid,
+        num_envs=args.num_eval_envs,
+        reconfiguration_freq=args.eval_reconfiguration_freq,
+        **env_kwargs,
+    )
 
     if isinstance(envs.action_space, gym.spaces.Dict):
         envs = FlattenActionSpaceWrapper(envs)
@@ -245,8 +256,18 @@ def main(args: Args):
             video_fps=30,
             info_on_video=True,
         )
-    envs = ManiSkillVectorEnv(envs, args.num_envs, ignore_terminations=not args.partial_reset, record_metrics=True)
-    eval_envs = ManiSkillVectorEnv(eval_envs, args.num_eval_envs, ignore_terminations=not args.eval_partial_reset, record_metrics=True)
+    envs = ManiSkillVectorEnv(
+        envs,
+        args.num_envs,
+        ignore_terminations=not args.partial_reset,
+        record_metrics=True,
+    )
+    eval_envs = ManiSkillVectorEnv(
+        eval_envs,
+        args.num_eval_envs,
+        ignore_terminations=not args.eval_partial_reset,
+        record_metrics=True,
+    )
     assert isinstance(envs.single_action_space, gym.spaces.Box), "only continuous action space is supported"
 
     max_episode_steps = gym_utils.find_max_episode_steps_value(envs._env)
