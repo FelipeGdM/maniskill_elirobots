@@ -5,6 +5,11 @@ sudo dnf build deps numpy sympy
 PKG_CONFIG_PATH=(pwd)/.openblas poetry install
 ```
 
+## Lessons learned
+
+- In `PDJointPosControllerConfig`, the option `normalize_action` means that the action produced by the agent will be clipped to [-1,1] and then scaled to the min and max of the controller.
+- The output action of the agent may be any real number, `normalize_action=True` means that the action space is better used.
+
 ## Observation
 
 ```python
