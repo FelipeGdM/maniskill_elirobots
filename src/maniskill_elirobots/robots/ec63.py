@@ -107,7 +107,7 @@ class EC63(BaseAgent):
                     stiffness=self.arm_stiffness,
                     damping=self.arm_damping,
                     force_limit=self.arm_force_limit,
-                    # normalize_action=True,
+                    normalize_action=True,
                     use_delta=True,
                     use_target=True,
                     # drive_mode="force",
