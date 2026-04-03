@@ -60,6 +60,8 @@ class PushCubeEcEnv(BaseEnv):
     goal_radius = 0.1
     cube_half_size = 0.02
 
+    max_reward: float = 5.0
+
     def __init__(self, *args, robot_uids="panda", robot_init_qpos_noise=0.02, **kwargs):  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
         # specifying robot_uids="panda" as the default means gym.make("PushCube-v1") will default to using the panda arm.
         self.robot_init_qpos_noise = robot_init_qpos_noise
@@ -252,23 +254,28 @@ class PushCubeEcEnv(BaseEnv):
         #   and the z reward becomes more important as the robot gets closer to the goal.
         reward += place_reward * z_reward * reached
 
-        reward[info["success"]] = 4.0
+        task_success = cast("torch.Tensor", info["success"])
 
-        # cube_velocity_penalty = 1e-1
-        # cube_velocity = torch.linalg.norm(self.obj.linear_velocity, dim=1) ** 2
+        reward[task_success] = self.max_reward
 
-        # reward -= torch.tanh(cube_velocity_penalty * cube_velocity)
+        finish_pos_penalty = 1
+        finish_pos_dist = torch.linalg.norm(self.agent.robot.qpos - torch.tensor(self.agent.keyframes["rest"].qpos, device=self.device), dim=1) ** 2
 
-        energy_penalty = 1
+        reward -= torch.tanh(finish_pos_penalty * finish_pos_dist) * task_success
+
+        cube_velocity_penalty = 1
+        cube_velocity = torch.linalg.norm(self.obj.linear_velocity, dim=1) ** 2
+
+        reward -= torch.tanh(cube_velocity_penalty * cube_velocity)
+
+        energy_penalty = 5
         energy = torch.linalg.norm(self.agent.robot.qvel, dim=1) ** 2
 
         reward -= torch.tanh(energy_penalty * energy)
 
-        # assign rewards to parallel environments that achieved success to the maximum of 3.
-        return torch.clamp(reward, -4, 4) - 4
+        return torch.clamp(reward, -self.max_reward, self.max_reward) - self.max_reward
 
     @override
     def compute_normalized_dense_reward(self, obs: Any, action: Array, info: dict):
         # this should be equal to compute_dense_reward / max possible reward
-        max_reward = 4.0
-        return self.compute_dense_reward(obs=obs, action=action, info=info) / max_reward
+        return self.compute_dense_reward(obs=obs, action=action, info=info) / self.max_reward
