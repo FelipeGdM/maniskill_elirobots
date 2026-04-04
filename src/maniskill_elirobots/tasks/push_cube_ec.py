@@ -61,6 +61,7 @@ class PushCubeEcEnv(BaseEnv):
     cube_half_size = 0.02
 
     max_reward: float = 5.0
+    finish_pos_penalty: float = 0.0
 
     def __init__(self, *args, robot_uids="panda", robot_init_qpos_noise=0.02, **kwargs):  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
         # specifying robot_uids="panda" as the default means gym.make("PushCube-v1") will default to using the panda arm.
@@ -196,7 +197,15 @@ class PushCubeEcEnv(BaseEnv):
     def get_info(self) -> dict:
         info = super().get_info()
 
-        info.update({"cube": torch.linalg.norm(self.obj.linear_velocity, dim=1)})
+        finish_pos_dist = torch.linalg.norm(self.agent.robot.qpos - torch.tensor(self.agent.keyframes["rest"].qpos, device=self.device), dim=1) ** 2
+
+        info.update(
+            {
+                "cube": torch.linalg.norm(self.obj.linear_velocity, dim=1),
+                # "finish_pos_dist": finish_pos_dist,
+                # "finish_pos_dist_tanh": torch.tanh(finish_pos_dist * self.finish_pos_penalty),
+            },
+        )
 
         return info
 
@@ -258,10 +267,9 @@ class PushCubeEcEnv(BaseEnv):
 
         reward[task_success] = self.max_reward
 
-        finish_pos_penalty = 1
         finish_pos_dist = torch.linalg.norm(self.agent.robot.qpos - torch.tensor(self.agent.keyframes["rest"].qpos, device=self.device), dim=1) ** 2
 
-        reward -= torch.tanh(finish_pos_penalty * finish_pos_dist) * task_success
+        reward -= torch.tanh(self.finish_pos_penalty * finish_pos_dist) * task_success
 
         cube_velocity_penalty = 1
         cube_velocity = torch.linalg.norm(self.obj.linear_velocity, dim=1) ** 2
