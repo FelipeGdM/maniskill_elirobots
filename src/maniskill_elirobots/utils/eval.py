@@ -17,7 +17,7 @@ from maniskill_elirobots.utils.agent import Agent
 # Configuration
 NUM_EVAL_EPISODES = 1
 ENV_ID = "PushCubeEc-v1"  # Replace with your environment
-CHECKPOINT = "/workspaces/maniskill_elirobots/pth/ckpt_8192000_14.pt"
+CHECKPOINT = "/workspaces/maniskill_elirobots/pth/ckpt_8192000_slow.pt"
 ROBOT_UID = "ec63"
 OUTPUT_FOLDER = "eval"
 
@@ -38,10 +38,10 @@ env = gym.make(
     render_mode="rgb_array",
     sim_backend="physx_cpu",
     control_mode="pd_joint_delta_pos",
-    # sim_config={
-    #     "sim_freq": 100,
-    #     "control_freq": 1,
-    # },
+    sim_config={
+        "sim_freq": 100,
+        "control_freq": 2,
+    },
 )
 
 print(f"{env.unwrapped.action_space=}")  # pyright: ignore[reportAttributeAccessIssue]
