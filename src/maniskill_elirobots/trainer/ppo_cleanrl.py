@@ -211,6 +211,10 @@ def main(args: Args):
         "render_mode": "rgb_array",
         "sim_backend": "physx_cuda",
         "control_mode": args.control_mode,
+        "sim_config": {
+            "sim_freq": 100,
+            "control_freq": 2,
+        },
     }
 
     envs = gym.make(
