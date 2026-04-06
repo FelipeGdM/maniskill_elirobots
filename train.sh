@@ -7,8 +7,8 @@ set -e DISPLAY
 
 python src/maniskill_elirobots/trainer/ppo_cleanrl.py \
     --env_id="PushCubeEc-v1" \
-    --exp-name="pushcube-delta-pos-controller-14" \
-    --num_envs=1024 \
+    --exp-name="pushcube-dposcon-norm-qfim-01" \
+    --num-envs=1024 \
     --update_epochs=8 \
     --num_minibatches=32 \
     --total_timesteps=8_192_001 \

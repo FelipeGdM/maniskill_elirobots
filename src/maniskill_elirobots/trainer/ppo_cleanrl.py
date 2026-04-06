@@ -209,7 +209,7 @@ def main(args: Args):
     env_kwargs = {
         "obs_mode": "state",
         "render_mode": "rgb_array",
-        "sim_backend": "physx_cuda",
+        "sim_backend": "physx_cuda" if torch.cuda.is_available() and args.cuda else "physx_cpu",
         "control_mode": args.control_mode,
         "sim_config": {
             "sim_freq": 100,
