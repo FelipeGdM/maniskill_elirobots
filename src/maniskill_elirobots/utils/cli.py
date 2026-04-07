@@ -30,7 +30,8 @@ class CliArgs:
     # Algorithm specific arguments
     env_id: str = "PushCubeEc-v1"
     """the id of the environment"""
-    total_timesteps: int = 10_000_000
+    # total_timesteps: int = 10_000_000
+    total_timesteps: int = 8_000_000
     """total timesteps of the experiments"""
     learning_rate: float = 3e-4
     """the learning rate of the optimizer"""
@@ -80,7 +81,7 @@ class CliArgs:
     """Scale the reward by this factor"""
     eval_freq: int = 25
     """evaluation frequency in terms of iterations"""
-    save_train_video_freq: int | None = None
+    save_train_video_freq: int | None = 400_000
     """frequency to save training videos in terms of iterations"""
     finite_horizon_gae: bool = False
 
