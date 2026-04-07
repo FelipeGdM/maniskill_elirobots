@@ -1346,7 +1346,7 @@ wheels = [
 [[package]]
 name = "mani-skill"
 version = "3.0.0b22"
-source = { directory = "vendor/ManiSkill" }
+source = { editable = "vendor/ManiSkill" }
 dependencies = [
     { name = "dacite" },
     { name = "gitpython" },
@@ -1438,7 +1438,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "mani-skill", directory = "vendor/ManiSkill" },
+    { name = "mani-skill", editable = "vendor/ManiSkill" },
     { name = "moviepy", specifier = ">=2.2.1" },
     { name = "pytest", specifier = ">=9.0.2,<10.0.0" },
     { name = "ray", extras = ["rllib"], specifier = "==2.54.1" },

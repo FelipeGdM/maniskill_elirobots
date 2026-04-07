@@ -24,7 +24,7 @@ dependencies = [
 exclude-dependencies = ["torch"]
 
 [tool.uv.sources]
-mani-skill = { path = "./vendor/ManiSkill" }
+mani-skill = { path = "./vendor/ManiSkill", editable = true }
 
 [project.scripts]
 show-robot = "maniskill_elirobots.robots.ec63:_script"
