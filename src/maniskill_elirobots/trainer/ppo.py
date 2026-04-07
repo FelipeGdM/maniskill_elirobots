@@ -1,7 +1,10 @@
 import gymnasium as gym
+import torch
 import tyro
 from mani_skill.utils.gym_utils import ManiSkillVectorEnv
+from mani_skill.vector.wrappers.sb3 import ManiSkillSB3VectorEnv
 from stable_baselines3 import PPO
+from stable_baselines3.common.env_util import make_vec_env
 
 from maniskill_elirobots.utils import CliArgs
 
@@ -15,13 +18,34 @@ def main(args: CliArgs) -> None:
     env_kwargs = {
         "obs_mode": "state",
         "render_mode": "rgb_array",
-        "sim_backend": "physx_cuda",
+        # "sim_backend": "physx_cuda" if torch.cuda.is_available() and args.cuda else "physx_cpu",
+        "sim_backend": "physx_cpu",
+        "render_backend": "sapien_cpu",
     }
 
-    if args.control_mode is not None:
-        env_kwargs["control_mode"] = args.control_mode
+    # if args.control_mode is not None:
+    #     env_kwargs["control_mode"] = args.control_mode
 
-    envs = gym.make(args.env_id, robot_uids=ROBOT_UID, num_envs=args.num_envs if not args.evaluate else 1, reconfiguration_freq=args.reconfiguration_freq, **env_kwargs)
+    # envs = make_vec_env(
+    #     args.env_id,
+    #     robot_uids=ROBOT_UID,
+    #     num_envs=args.num_envs if not args.evaluate else 1,
+    #     reconfiguration_freq=args.reconfiguration_freq,
+    #     **env_kwargs,
+    # )
+
+    # envs = gym.make_vec(
+    envs = gym.make(
+        args.env_id,
+        robot_uids=ROBOT_UID,
+        num_envs=args.num_envs,
+        reconfiguration_freq=args.reconfiguration_freq,
+        # render_mode="rgb_array",
+        # vectorization_mode="sync",
+        **env_kwargs,
+    )
+
+    vec_envs = ManiSkillSB3VectorEnv(envs)
 
     # envs = RecordEpisode(
     #     envs,
@@ -33,15 +57,17 @@ def main(args: CliArgs) -> None:
     #     info_on_video=True,
     # )
 
-    envs = ManiSkillVectorEnv(
-        envs,
-        args.num_envs,
-        ignore_terminations=not args.partial_reset,
-        record_metrics=True,
-    )
+    # envs = ManiSkillVectorEnv(
+    #     envs,
+    #     1,
+    #     ignore_terminations=not args.partial_reset,
+    #     record_metrics=True,
+    # )
+
+    # envs =
     # eval_envs = gym.make(args.env_id, robot_uids=ROBOT_UID, num_envs=args.num_eval_envs, reconfiguration_freq=args.eval_reconfiguration_freq, **env_kwargs)
 
-    model = PPO("MlpPolicy", env=envs, verbose=1, tensorboard_log="./runs/les_goo", device="cuda")
+    model = PPO("MlpPolicy", env=vec_envs, verbose=1, tensorboard_log="./runs/les_goo", device="cuda")
 
     _ = model.learn(total_timesteps=args.total_timesteps, progress_bar=True)
 
@@ -53,5 +79,6 @@ if __name__ == "__main__":
 
     args = CliArgs(
         exp_name="topster",
+        num_envs=1,
     )
     main(args)
