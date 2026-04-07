@@ -8,14 +8,16 @@ Requires: CUDA-capable GPU + matching PyTorch CUDA build
 import os
 from pathlib import Path
 from pprint import pprint
+
 import gymnasium as gym
 import ray
 import torch
-from mani_skill.vector.wrappers.gymnasium import ManiSkillVectorEnv
+from mani_skill.utils.wrappers import CPUGymWrapper
 from ray.rllib.algorithms.ppo import PPOConfig
 from ray.tune.registry import register_env
 
 from maniskill_elirobots.tasks import PushCubeEcEnv
+import contextlib
 
 os.environ["RAY_ACCEL_ENV_VAR_OVERRIDE_ON_ZERO"] = "0"
 
@@ -24,7 +26,8 @@ os.environ["PYTHONWARNINGS"] = "ignore::DeprecationWarning"
 
 def create_env(config):
     base_env = PushCubeEcEnv(**config)
-    obs_env = gym.wrappers.FlattenObservation(base_env)
+    cpu_env = CPUGymWrapper(base_env)
+    obs_env = gym.wrappers.FlattenObservation(cpu_env)
     return obs_env
 
 
@@ -86,8 +89,11 @@ for i in range(ITERATIONS):
 
     env_runners = result["env_runners"]
 
-    print(f"{i:>5}  {env_runners['episode_return_mean']:>12.1f}  {env_runners['episode_return_min']:>8.1f}  {env_runners['episode_return_max']:>8.1f}")
-
+    # pprint(env_runners)
+    print(f"{i:>5}  ", end="")
+    with contextlib.suppress(BaseException):
+        print(f"{env_runners['episode_return_mean']:>12.1f}  {env_runners['episode_return_min']:>8.1f}  {env_runners['episode_return_max']:>8.1f}", end="")
+    print()
 
 _ = algo.save_to_path(Path("./checkpoint").resolve())
 
