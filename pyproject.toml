@@ -22,6 +22,7 @@ dependencies = [
 
 [tool.uv]
 exclude-dependencies = ["torch"]
+config-settings = { editable_mode = "compat" }
 
 [tool.uv.sources]
 mani-skill = { path = "./vendor/ManiSkill", editable = true }
