@@ -213,7 +213,7 @@ def main(args: Args):
         "control_mode": args.control_mode,
         "sim_config": {
             "sim_freq": 100,
-            "control_freq": 2,
+            "control_freq": 20,
         },
     }
 
