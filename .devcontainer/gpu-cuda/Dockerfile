@@ -45,6 +45,8 @@ ADD pyproject.toml .
 
 ADD uv.lock .
 
+ADD vendor/ .
+
 RUN uv sync --no-install-project --inexact
 
 # download physx GPU binary via sapien
