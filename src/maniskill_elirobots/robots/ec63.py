@@ -89,12 +89,13 @@ class EC63(BaseAgent):
                     normalize_action=False,
                 ),
                 "gripper": PDJointPosMimicControllerConfig(
-                    self.gripper_joint_names,
+                    joint_names=self.gripper_joint_names,
                     lower=-0.01,  # a trick to have force when the object is thin
                     upper=0.04,
                     stiffness=self.gripper_stiffness,
                     damping=self.gripper_damping,
                     force_limit=self.gripper_force_limit,
+                    mimic={"finger_2_joint": {"joint": "finger_1_joint"}},
                 ),
             },
             "pd_joint_delta_pos": {
@@ -114,12 +115,13 @@ class EC63(BaseAgent):
                     # drive_mode="acceleration",
                 ),
                 "gripper": PDJointPosMimicControllerConfig(
-                    self.gripper_joint_names,
+                    joint_names=self.gripper_joint_names,
                     lower=-0.01,  # a trick to have force when the object is thin
                     upper=0.04,
                     stiffness=self.gripper_stiffness,
                     damping=self.gripper_damping,
                     force_limit=self.gripper_force_limit,
+                    mimic={"finger_2_joint": {"joint": "finger_1_joint"}},
                 ),
             },
         }
