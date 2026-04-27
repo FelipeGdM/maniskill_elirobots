@@ -98,7 +98,15 @@ class PushCubeEcEnv(BaseEnv):
     def _default_human_render_camera_configs(self):
         # registers a more high-definition (512x512) camera used just for rendering when render_mode="rgb_array" or calling env.render_rgb_array()
         pose = sapien_utils.look_at([0.6, 0.7, 0.6], [0.0, 0.0, 0.35])
-        return CameraConfig("render_camera", pose=pose, width=512, height=512, fov=1, near=0.01, far=100)
+        return CameraConfig(
+            "render_camera",
+            pose=pose,
+            width=512,
+            height=512,
+            fov=1.5,
+            near=0.01,
+            far=100,
+        )
 
     @override
     def _load_agent(self, options: dict):
