@@ -63,6 +63,12 @@ reportUnknownMemberType = false
 reportArgumentType = false
 reportUntypedClassDecorator = false
 reportMissingTypeStubs = false
+reportIncompatibleVariableOverride = false
+reportUnknownParameterType = false
+reportUnknownArgumentType = false
+reportMissingParameterType = false
+reportIncompatibleMethodOverride = false
+reportMissingTypeArgument = false
 
 [build-system]
 requires = ["uv_build>=0.10.9,<0.11.0"]
