@@ -45,7 +45,7 @@ ADD pyproject.toml .
 
 ADD uv.lock .
 
-ADD vendor/ .
+ADD vendor vendor
 
 RUN uv sync --no-install-project --inexact
 
