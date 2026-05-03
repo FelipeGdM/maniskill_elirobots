@@ -5,10 +5,14 @@
 
 set -e DISPLAY
 
+    # --exp-name="pushcube-dposcon-norm-qfim-02" \
+    # --env_id="PushCubeEc-v1" \
+    # --robot-uid="panda" \
+
 python src/maniskill_elirobots/trainer/ppo_cleanrl.py \
-    --env_id="PushCubeEc-v1" \
-    --exp-name="pushcube-dposcon-norm-qfim-01" \
-    --num-envs=1024 \
+    --env_id="PickCubeEc-v1" \
+    --robot-uid="panda" \
+    --num-envs=512 \
     --update_epochs=8 \
     --num_minibatches=32 \
     --total_timesteps=8_192_001 \
