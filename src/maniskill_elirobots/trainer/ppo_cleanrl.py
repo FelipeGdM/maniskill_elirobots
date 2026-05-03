@@ -31,7 +31,7 @@ gym.register_envs(maniskill_elirobots)
 
 @dataclass
 class Args:
-    exp_name: Optional[str] = None
+    exp_name: str | None = None
     """the name of this experiment"""
     seed: int = 1
     """seed of the experiment"""
@@ -43,7 +43,7 @@ class Args:
     """if toggled, this experiment will be tracked with Weights and Biases"""
     wandb_project_name: str = "ManiSkill"
     """the wandb's project name"""
-    wandb_entity: Optional[str] = None
+    wandb_entity: str | None = None
     """the entity (team) of wandb's project"""
     capture_video: bool = True
     """whether to capture videos of the agent performances (check out `videos` folder)"""
@@ -51,15 +51,15 @@ class Args:
     """whether to save model into the `runs/{run_name}` folder"""
     evaluate: bool = False
     """if toggled, only runs evaluation with the given model checkpoint and saves the evaluation trajectories"""
-    checkpoint: Optional[str] = None
+    checkpoint: str | None = None
     """path to a pretrained checkpoint file to start evaluation/training from"""
 
     # Algorithm specific arguments
-    env_id: str = "PickCube-v1"
+    env_id: str = "PickCubeEc-v1"
     """the id of the environment"""
     robot_uid: str = "ec63"
     """robot unique id"""
-    total_timesteps: int = 10000000
+    total_timesteps: int = 8_192_001
     """total timesteps of the experiments"""
     learning_rate: float = 3e-4
     """the learning rate of the optimizer"""
@@ -75,11 +75,11 @@ class Args:
     """the number of steps to run in each environment per policy rollout"""
     num_eval_steps: int = 50
     """the number of steps to run in each evaluation environment during evaluation"""
-    reconfiguration_freq: Optional[int] = None
+    reconfiguration_freq: int | None = None
     """how often to reconfigure the environment during training"""
-    eval_reconfiguration_freq: Optional[int] = 1
+    eval_reconfiguration_freq: int | None = 1
     """for benchmarking purposes we want to reconfigure the eval environment each reset to ensure objects are randomized in some tasks"""
-    control_mode: Optional[str] = "pd_joint_pos"
+    control_mode: str | None = "pd_joint_delta_pos"
     """the control mode to use for the environment"""
     anneal_lr: bool = False
     """Toggle learning rate annealing for policy and value networks"""
@@ -89,7 +89,7 @@ class Args:
     """the lambda for the general advantage estimation"""
     num_minibatches: int = 32
     """the number of mini-batches"""
-    update_epochs: int = 4
+    update_epochs: int = 8
     """the K epochs to update the policy"""
     norm_adv: bool = True
     """Toggles advantages normalization"""
@@ -107,11 +107,15 @@ class Args:
     """the target KL divergence threshold"""
     reward_scale: float = 1.0
     """Scale the reward by this factor"""
-    eval_freq: int = 25
+    eval_freq: int = 16
     """evaluation frequency in terms of iterations"""
-    save_train_video_freq: Optional[int] = None
+    save_train_video_freq: int | None = None
     """frequency to save training videos in terms of iterations"""
     finite_horizon_gae: bool = False
+
+    qvel_penalty: float = 0.125
+
+    qvel_tolerance: float = 0.25
 
     # to be filled in runtime
     batch_size: int = 0
@@ -222,6 +226,8 @@ def main(args: Args):
         robot_uids=args.robot_uid,
         num_envs=args.num_envs if not args.evaluate else 1,
         reconfiguration_freq=args.reconfiguration_freq,
+        qvel_penalty=args.qvel_penalty,
+        qvel_tolerance=args.qvel_tolerance,
         **env_kwargs,
     )
     eval_envs = gym.make(
@@ -229,6 +235,8 @@ def main(args: Args):
         robot_uids=args.robot_uid,
         num_envs=args.num_eval_envs,
         reconfiguration_freq=args.eval_reconfiguration_freq,
+        qvel_penalty=args.qvel_penalty,
+        qvel_tolerance=args.qvel_tolerance,
         **env_kwargs,
     )
 
