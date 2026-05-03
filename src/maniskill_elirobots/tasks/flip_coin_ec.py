@@ -20,7 +20,7 @@ For a minimal implementation of a simple task, check out
 mani_skill /envs/tasks/push_cube.py which is annotated with comments to explain how it is implemented
 """
 
-from typing import Any, override
+from typing import Any, cast, override
 
 import numpy as np
 import sapien
@@ -37,14 +37,17 @@ from mani_skill.utils.building.actors.common import build_cylinder, build_red_wh
 from mani_skill.utils.registration import register_env
 from mani_skill.utils.scene_builder.table.scene_builder import TableSceneBuilder
 from mani_skill.utils.structs import Pose
+from mani_skill.utils.structs.actor import Actor
 from mani_skill.utils.structs.types import GPUMemoryConfig, SimConfig
 from transforms3d.euler import euler2quat
 
 from maniskill_elirobots.robots.ec63 import EC63
 
+from .scene_builder.actors import build_twocolor_cylinder
+
 
 # register the environment by a unique ID and specify a max time limit. Now once this file is imported you can do gym.make("FlipCoin-v0")
-@register_env("FlipCoin-v1", max_episode_steps=200)
+@register_env("FlipCoin-v1", max_episode_steps=50)
 class FlipCoinEnv(BaseEnv):
     """
     Task Description
@@ -70,7 +73,39 @@ class FlipCoinEnv(BaseEnv):
 
     # to help with programming, you can assert what type of agents are supported like below, and any shared properties of self.agent
     # become available to typecheckers and auto-completion. E.g. Panda and Fetch both share a property called .tcp (tool center point).
-    agent: Panda | Fetch | EC63
+    agent: Panda | EC63
+
+    initial_agent_pose = sapien.Pose(p=[-0.4, 0, 0])
+
+    initial_coin_pose = sapien.Pose(
+        p=[-0.1, 0, 10e-3],
+        q=euler2quat(0, np.pi / 2, 0),
+    )
+
+    initial_goal_pose = sapien.Pose(
+        p=[0.1, 0, 1e-5],
+        q=euler2quat(0, np.pi / 2, 0),
+    )
+
+    max_reward: float = 5.0
+
+    goal_thresh: float = 25e-3
+
+    init_qpos = {
+        "ec63": torch.tensor([0.0, -6 * np.pi / 8, 5 * np.pi / 8, -3 * np.pi / 8, 4 * np.pi / 8, 0, 0, 0]),
+        "panda": torch.tensor([0.0, np.pi / 8, 0, -np.pi * 5 / 8, 0, np.pi * 3 / 4, np.pi / 4, 0.04, 0.04]),
+    }
+
+    coin_length = 20e-3
+
+    @property
+    def goal_region(self) -> Actor:
+        return self.scene_elements["goal_region"]
+
+    @property
+    def coin(self) -> Actor:
+        return self.scene_elements["coin"]
+
     # if you want to do typing for multi-agent setups, use this below and specify what possible tuples of robots are permitted by typing
     # this will then populate agent.agents (list of the instantiated agents) with the right typing
     # agent: MultiAgent[Union[Tuple[Panda, Panda], Tuple[Panda, Panda, Panda]]]
@@ -105,7 +140,7 @@ class FlipCoinEnv(BaseEnv):
     def _load_agent(self, options: dict):
         # this code loads the agent into the current scene. You should use it to specify the initial pose(s) of the agent(s)
         # such that they don't collide with other objects initially
-        super()._load_agent(options, sapien.Pose(p=[0, 0, 0]))
+        super()._load_agent(options, self.initial_agent_pose)
 
     @override
     def _load_scene(self, options: dict):
@@ -113,13 +148,14 @@ class FlipCoinEnv(BaseEnv):
         self.scene_elements["table_scene"] = TableSceneBuilder(env=self, robot_init_qpos_noise=self.robot_init_qpos_noise)
         self.scene_elements["table_scene"].build()
 
-        self.scene_elements["coin"] = build_cylinder(
+        self.scene_elements["coin"] = build_twocolor_cylinder(
             self.scene,
             radius=20e-3,
-            color=[1, 1, 0, 1],
-            half_length=5e-3,
+            color_1=[1, 0, 0, 1],
+            color_2=[0, 0, 1, 1],
+            half_length=self.coin_length / 2,
             name="coin",
-            initial_pose=sapien.Pose(p=[0.3, 0, 10e-3], q=euler2quat(0, np.pi / 2, 0)),
+            initial_pose=self.initial_coin_pose,
         )
 
         # we then add the cube that we want to push and give it a color and size using a convenience build_cube function
@@ -136,7 +172,7 @@ class FlipCoinEnv(BaseEnv):
             name="goal_region",
             add_collision=False,
             body_type="kinematic",
-            initial_pose=sapien.Pose(p=[0.2, 0, 1e-3]),
+            initial_pose=self.initial_goal_pose,
         )
 
         # optionally you can automatically hide some Actors from view by appending to the self._hidden_objects list. When visual observations
@@ -161,7 +197,8 @@ class FlipCoinEnv(BaseEnv):
         # this is just like _sensor_configs, but for adding cameras used for rendering when you call env.render()
         # when render_mode="rgb_array" or env.render_rgb_array()
         # Another feature here is that if there is a camera called render_camera, this is the default view shown initially when a GUI is opened
-        pose = sapien_utils.look_at([0.6, 0.7, 0.6], [0.0, 0.0, 0.35])
+        # pose = sapien_utils.look_at([0.6, 0.7, 0.6], [0.0, 0.0, 0.35])
+        pose = sapien_utils.look_at([0.3, 0.0, 0.35], [0.0, 0.0, 0.35])
         return CameraConfig(
             "render_camera",
             pose,
@@ -203,29 +240,26 @@ class FlipCoinEnv(BaseEnv):
             # the initialization functions where you as a user place all the objects and initialize their properties
             # are designed to support partial resets, where you generate initial state for a subset of the environments.
             # this is done by using the env_idx variable, which also tells you the batch size
-            b = len(env_idx)
+            env_count = len(env_idx)
             # when using scene builders, you must always call .initialize on them so they can set the correct poses of objects in the prebuilt scene
             # note that the table scene is built such that z=0 is the surface of the table.
             self.scene_elements["table_scene"].initialize(env_idx)
             self.agent.reset(
-                init_qpos=torch.Tensor(
-                    [
-                        0.0,
-                        -6 * np.pi / 8,
-                        5 * np.pi / 8,
-                        -3 * np.pi / 8,
-                        4 * np.pi / 8,
-                        0,
-                        0,
-                        0,
-                    ],
-                ),
+                init_qpos=self.init_qpos[self.robot_uids],
             )
 
             # # here we write some randomization code that randomizes the x, y position of the cube we are pushing in the range [-0.1, -0.1] to [0.1, 0.1]
-            xyz = torch.tensor([0.2, 0.0, 0.0])
-            # xyz[..., :2] = torch.rand((b, 2)) * 0.2 - 0.1
-            # xyz[..., 2] = self.cube_half_size
+            xyz = torch.zeros((env_count, 3))
+            xyz[..., :2] = torch.rand((env_count, 2)) * 0.2 - 0.1
+
+            coin_xyz = xyz + torch.tensor(self.initial_coin_pose.get_p())
+
+            self.coin.set_pose(
+                Pose.create_from_pq(
+                    p=coin_xyz,
+                    q=self.initial_coin_pose.get_q(),
+                ),
+            )
             # q = [1, 0, 0, 0]
             # # we can then create a pose object using Pose.create_from_pq to then set the cube pose with. Note that even though our quaternion
             # # is not batched, Pose.create_from_pq will automatically batch p or q accordingly
@@ -236,15 +270,13 @@ class FlipCoinEnv(BaseEnv):
             # self.obj.set_pose(obj_pose)
 
             # here we set the location of that red/white target (the goal region). In particular here, we set the position to be in front of the cube
-            # and we further rotate 90 degrees on the y-axis to make the target object face up
-            # target_region_xyz = xyz + torch.tensor([0.1 + self.goal_radius, 0, 0])
-            target_region_xyz = xyz
-            # set a little bit above 0 so the target is sitting on the table
-            target_region_xyz[..., 2] = 1e-3
-            self.scene_elements["goal_region"].set_pose(
+
+            goal_region_xyz = xyz + torch.tensor(self.initial_goal_pose.get_p()) + torch.tensor([0.1 + self.goal_radius, 0, 0])
+
+            self.goal_region.set_pose(
                 Pose.create_from_pq(
-                    p=target_region_xyz,
-                    q=euler2quat(0, np.pi / 2, 0),
+                    p=goal_region_xyz,
+                    q=self.initial_goal_pose.get_q(),
                 ),
             )
 
@@ -264,9 +296,14 @@ class FlipCoinEnv(BaseEnv):
         # You may also include additional keys which will populate the info object returned by self.step and that will be given to
         # `_get_obs_extra` and `_compute_dense_reward`. Note that as everything is batched, you must return a batched array of
         # `self.num_envs` booleans (or 0/1 values) for success an dfail as done in the example below
+        is_obj_placed = torch.linalg.norm(self.goal_region.pose.p - self.coin.pose.p, axis=1) <= self.goal_thresh
+        is_grasped = self.agent.is_grasping(self.coin)
+        is_robot_static = self.agent.is_static(0.2)
         return {
-            "success": torch.zeros(self.num_envs, device=self.device, dtype=bool),
-            "fail": torch.zeros(self.num_envs, device=self.device, dtype=bool),
+            "success": is_obj_placed & is_robot_static,
+            "is_obj_placed": is_obj_placed,
+            "is_robot_static": is_robot_static,
+            "is_grasped": is_grasped,
         }
 
     @override
@@ -282,13 +319,38 @@ class FlipCoinEnv(BaseEnv):
         # you can optionally provide a dense reward function by returning a scalar value here. This is used when reward_mode="dense"
         # note that as everything is batched, you must return a batch of of self.num_envs rewards as done in the example below.
         # Moreover, you have access to the info object which is generated by the `evaluate` function above
-        return torch.zeros(self.num_envs, device=self.device)
+
+        coin = cast("Actor", self.scene_elements["coin"])
+        goal_region = cast("Actor", self.scene_elements["goal_region"])
+
+        tcp_to_obj_dist = torch.linalg.norm(coin.pose.p - self.agent.tcp_pose.p, axis=1)
+        reaching_reward = 1 - torch.tanh(5 * tcp_to_obj_dist)
+        reward = reaching_reward
+
+        is_grasped = info["is_grasped"]
+        reward += is_grasped
+
+        obj_to_goal_dist = torch.linalg.norm(goal_region.pose.p - coin.pose.p, axis=1)
+        place_reward = 1 - torch.tanh(5 * obj_to_goal_dist)
+        reward += place_reward * is_grasped
+
+        qvel = self.agent.robot.get_qvel()
+
+        if self.robot_uids in ["panda", "widowxai"]:
+            qvel = qvel[..., :-2]
+        elif self.robot_uids == "so100":
+            qvel = qvel[..., :-1]
+
+        static_reward = 1 - torch.tanh(5 * torch.linalg.norm(qvel, axis=1))
+        reward += static_reward * info["is_obj_placed"]
+
+        reward[info["success"]] = self.max_reward
+        return reward
 
     @override
     def compute_normalized_dense_reward(self, obs: Any, action: torch.Tensor, info: dict):
         # this should be equal to compute_dense_reward / max possible reward
-        max_reward = 1.0
-        return self.compute_dense_reward(obs=obs, action=action, info=info) / max_reward
+        return self.compute_dense_reward(obs=obs, action=action, info=info) / self.max_reward
 
     @override
     def get_state_dict(self):
