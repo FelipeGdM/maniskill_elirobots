@@ -31,6 +31,7 @@ RUN apt update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install
     wget \
     libglvnd-dev \
     libgl1 \
+    task-spooler \
     && rm -rf /var/lib/apt/lists/*
 
 SHELL ["/usr/bin/fish", "-c"]
