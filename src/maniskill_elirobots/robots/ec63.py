@@ -53,9 +53,9 @@ class EC63(BaseAgent):
         "rest": Keyframe(
             qpos=[
                 0.0,
-                -7 * np.pi / 8,
-                5 * np.pi / 8,
-                -2 * np.pi / 8,
+                -3 * np.pi / 8,
+                3 * np.pi / 8,
+                -4 * np.pi / 8,
                 4 * np.pi / 8,
                 0,
                 0,
@@ -67,8 +67,8 @@ class EC63(BaseAgent):
 
     @override
     def _after_init(self):
-        self.finger1_link: list[Link] | Link | None = sapien_utils.get_obj_by_name(self.robot.get_links(), "claw_finger_1")  # pyright: ignore[reportUninitializedInstanceVariable]
-        self.finger2_link: list[Link] | Link | None = sapien_utils.get_obj_by_name(self.robot.get_links(), "claw_finger_2")  # pyright: ignore[reportUninitializedInstanceVariable]
+        self.finger_right_link: list[Link] | Link | None = sapien_utils.get_obj_by_name(self.robot.get_links(), "claw_finger_1")  # pyright: ignore[reportUninitializedInstanceVariable]
+        self.finger_left_link: list[Link] | Link | None = sapien_utils.get_obj_by_name(self.robot.get_links(), "claw_finger_2")  # pyright: ignore[reportUninitializedInstanceVariable]
         # self.finger1pad_link = sapien_utils.get_obj_by_name(self.robot.get_links(), "panda_leftfinger_pad")
         # self.finger2pad_link = sapien_utils.get_obj_by_name(self.robot.get_links(), "panda_rightfinger_pad")
         # Tool Center Point
@@ -90,8 +90,8 @@ class EC63(BaseAgent):
                 ),
                 "gripper": PDJointPosMimicControllerConfig(
                     joint_names=self.gripper_joint_names,
-                    lower=-0.01,  # a trick to have force when the object is thin
-                    upper=0.04,
+                    lower=None,  # a trick to have force when the object is thin
+                    upper=None,
                     stiffness=self.gripper_stiffness,
                     damping=self.gripper_damping,
                     force_limit=self.gripper_force_limit,
@@ -116,8 +116,8 @@ class EC63(BaseAgent):
                 ),
                 "gripper": PDJointPosMimicControllerConfig(
                     joint_names=self.gripper_joint_names,
-                    lower=-0.01,  # a trick to have force when the object is thin
-                    upper=0.04,
+                    lower=None,  # a trick to have force when the object is thin
+                    upper=None,
                     stiffness=self.gripper_stiffness,
                     damping=self.gripper_damping,
                     force_limit=self.gripper_force_limit,
@@ -131,7 +131,7 @@ class EC63(BaseAgent):
 
     @property
     @override
-    def _sensor_configs(self):  # pyright: ignore[reportIncompatibleMethodOverride]
+    def _sensor_configs(self):
         return [
             CameraConfig(
                 uid="hand_camera",
@@ -146,7 +146,7 @@ class EC63(BaseAgent):
         ]
 
     @override
-    def is_grasping(self, obj: Actor | None, min_force: float = 0.5, max_angle: float = 85) -> Tensor:  # pyright: ignore[reportIncompatibleMethodOverride]
+    def is_grasping(self, obj: Actor | None, min_force: float = 1e-3, max_angle: float = 360) -> Tensor:
         """Check if the robot is grasping an object
 
         Args:
@@ -156,23 +156,26 @@ class EC63(BaseAgent):
         """
         if obj is None:
             return torch.Tensor([False])
-        l_contact_forces = cast("Tensor", self.scene.get_pairwise_contact_forces(self.finger1_link, obj))
-        r_contact_forces = cast("Tensor", self.scene.get_pairwise_contact_forces(self.finger2_link, obj))
+        l_contact_forces = cast("Tensor", self.scene.get_pairwise_contact_forces(self.finger_left_link, obj))
+        r_contact_forces = cast("Tensor", self.scene.get_pairwise_contact_forces(self.finger_right_link, obj))
+
         lforce = cast("float", torch.linalg.norm(l_contact_forces, axis=1))
         rforce = cast("float", torch.linalg.norm(r_contact_forces, axis=1))
 
         # direction to open the gripper
-        ldirection = cast("Tensor", self.finger1_link.pose.to_transformation_matrix()[..., :3, 1])  # pyright: ignore[reportOptionalMemberAccess, reportAttributeAccessIssue]
-        rdirection = cast("Tensor", -self.finger2_link.pose.to_transformation_matrix()[..., :3, 1])  # pyright: ignore[reportOptionalMemberAccess, reportAttributeAccessIssue]
+        ldirection = cast("Tensor", self.finger_left_link.pose.to_transformation_matrix()[..., :3, 1])  # pyright: ignore[reportOptionalMemberAccess, reportAttributeAccessIssue]
+        rdirection = cast("Tensor", -self.finger_right_link.pose.to_transformation_matrix()[..., :3, 1])  # pyright: ignore[reportOptionalMemberAccess, reportAttributeAccessIssue]
+
         langle = common.compute_angle_between(x1=ldirection, x2=l_contact_forces)
         rangle = common.compute_angle_between(x1=rdirection, x2=r_contact_forces)
+
         lflag = torch.logical_and(lforce >= min_force, torch.rad2deg(langle) <= max_angle)
         rflag = torch.logical_and(rforce >= min_force, torch.rad2deg(rangle) <= max_angle)
         return torch.logical_and(lflag, rflag)
 
     @override
     def is_static(self, threshold: float = 0.2):
-        qvel = cast("Tensor", self.robot.get_qvel()[..., :-2])
+        qvel = cast("Tensor", self.robot.get_qvel()[..., :6])
         return torch.max(torch.abs(qvel), 1)[0] <= threshold
 
     @property
