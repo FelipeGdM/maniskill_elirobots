@@ -31,8 +31,8 @@ capabilities can be simulated and trained properly. Hence there is extra code fo
 PICK_CUBE_CONFIGS.update(
     {
         "ec63": {
-            "cube_half_size": 0.018,
-            "goal_thresh": 0.018 * 1.25,
+            "cube_half_size": 15e-3,
+            "goal_thresh": 15e-3 * 1.25,
             "cube_spawn_half_size": 0.05,
             "cube_spawn_center": (-0.25, 0),
             "max_goal_height": 0.2,
@@ -54,13 +54,14 @@ class PickCubeEcEnv(BaseEnv):
         "xarm6_robotiq",
         "so100",
         "widowxai",
+        "ec63",
     ]
-    agent: Union[Panda, Fetch, XArm6Robotiq, SO100, WidowXAI]
-    goal_thresh = 0.025
+    agent: Panda | Fetch | XArm6Robotiq | SO100 | WidowXAI
+    # goal_thresh = 0.025
     cube_spawn_half_size = 0.05
     cube_spawn_center = (0, 0)
 
-    def __init__(self, *args, robot_uids="ec63", robot_init_qpos_noise=0.02, **kwargs):
+    def __init__(self, *args, robot_uids="ec63", robot_init_qpos_noise=0.02, qvel_penalty=1.0, qvel_tolerance=0.2, **kwargs):
         self.robot_init_qpos_noise = robot_init_qpos_noise
         cfg = PICK_CUBE_CONFIGS[robot_uids] if robot_uids in PICK_CUBE_CONFIGS else PICK_CUBE_CONFIGS["panda"]
         self.cube_half_size = cfg["cube_half_size"]
@@ -72,6 +73,12 @@ class PickCubeEcEnv(BaseEnv):
         self.sensor_cam_target_pos = cfg["sensor_cam_target_pos"]
         self.human_cam_eye_pos = cfg["human_cam_eye_pos"]
         self.human_cam_target_pos = cfg["human_cam_target_pos"]
+
+        self.qvel_penalty = qvel_penalty
+        self.qvel_tolerance = qvel_tolerance
+
+        print(f"{self.qvel_penalty=} {self.qvel_tolerance=}")
+
         super().__init__(*args, robot_uids=robot_uids, **kwargs)
         # self.table_scene = None
         # self.cube = None
@@ -120,6 +127,9 @@ class PickCubeEcEnv(BaseEnv):
         with torch.device(self.device):
             b = len(env_idx)
             self.table_scene.initialize(env_idx)
+
+            self.agent.reset(self.agent.keyframes["rest"].qpos)
+
             xyz = torch.zeros((b, 3))
             xyz[:, :2] = torch.rand((b, 2)) * self.cube_spawn_half_size * 2 - self.cube_spawn_half_size
             xyz[:, 0] += self.cube_spawn_center[0]
@@ -156,37 +166,44 @@ class PickCubeEcEnv(BaseEnv):
     def evaluate(self):
         is_obj_placed = torch.linalg.norm(self.goal_site.pose.p - self.cube.pose.p, axis=1) <= self.goal_thresh
         is_grasped = self.agent.is_grasping(self.cube)
-        is_robot_static = self.agent.is_static(0.2)
+        is_robot_static = self.agent.is_static(self.qvel_tolerance)
+        obj_to_goal_dist = torch.linalg.norm(self.goal_site.pose.p - self.cube.pose.p, axis=1)
+        qvel = torch.linalg.norm(self.agent.robot.get_qvel()[..., :6], axis=1)
+
         return {
             "success": is_obj_placed & is_robot_static,
             "is_obj_placed": is_obj_placed,
             "is_robot_static": is_robot_static,
             "is_grasped": is_grasped,
+            "obj_to_goal_dist": obj_to_goal_dist,
+            "qvel": qvel,
         }
 
     @override
     def compute_dense_reward(self, obs: Any, action: torch.Tensor, info: dict):
         tcp_to_obj_dist = torch.linalg.norm(self.cube.pose.p - self.agent.tcp_pose.p, axis=1)
         reaching_reward = 1 - torch.tanh(5 * tcp_to_obj_dist)
-        reward = reaching_reward
 
         is_grasped = info["is_grasped"]
-        reward += is_grasped
+        is_obj_placed = info["is_obj_placed"]
 
         obj_to_goal_dist = torch.linalg.norm(self.goal_site.pose.p - self.cube.pose.p, axis=1)
         place_reward = 1 - torch.tanh(5 * obj_to_goal_dist)
-        reward += place_reward * is_grasped
 
         qvel = self.agent.robot.get_qvel()
         if self.robot_uids in ["panda", "widowxai"]:
             qvel = qvel[..., :-2]
         elif self.robot_uids == "so100":
             qvel = qvel[..., :-1]
-        static_reward = 1 - torch.tanh(5 * torch.linalg.norm(qvel, axis=1))
-        reward += static_reward * info["is_obj_placed"]
+        elif self.robot_uids == "ec63":
+            qvel = qvel[..., :6]
+
+        static_reward = 1 - torch.tanh(self.qvel_penalty * torch.linalg.norm(qvel, axis=1))
+
+        reward = reaching_reward + is_grasped * (1 + place_reward + is_obj_placed) + static_reward * is_obj_placed
 
         reward[info["success"]] = 5
-        return reward
+        return reward - 5
 
     @override
     def compute_normalized_dense_reward(self, obs: Any, action: torch.Tensor, info: dict):
