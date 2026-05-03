@@ -51,14 +51,19 @@ env = gym.make(
 
 obs, info = env.reset()
 
+action = torch.tensor([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0])
+
+for _ in range(4):
+    _ = env.step(action)
+
 photo = cast("torch.Tensor", env.render()).cpu()  # pyright: ignore[reportInvalidCast]
 
 print(f"{photo.shape=}")
 
-img = Image.fromarray(obj=photo.numpy().reshape(512, 512, 3))
+# img = Image.fromarray(obj=photo.numpy().reshape(512, 512, 3))
 
-img.save("output.png")
+# img.save("output.png")
 
-# save_image(photo.reshape(512, 512, 3)[:, :, 0] / 255, "output.png")
+save_image(photo[0].transpose(0, 2).transpose(1, 2) / 255, "output.png")
 
-# print("Image saved!")
+print("Image saved!")
