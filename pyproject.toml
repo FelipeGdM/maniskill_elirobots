@@ -11,7 +11,7 @@ dependencies = [
     # "mani-skill@git+https://github.com/haosulab/ManiSkill@v3.0.0b22",
     # "mani-skill @ git+https://github.com/haosulab/ManiSkill@main",
     # "mani-skill @ file:///vendor/ManiSkill",
-    "mani-skill>=3.0.0b22,<4.0.0",
+    "mani-skill>=3.0.1,<4.0.0",
     "setuptools==81.0.0",
     "tensorboard>=2.20.0",
     "pytest>=9.0.2,<10.0.0",
