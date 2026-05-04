@@ -63,3 +63,5 @@ RUN mv 10_nvidia.json /usr/share/glvnd/egl_vendor.d/10_nvidia.json
 
 RUN wget -q https://raw.githubusercontent.com/haosulab/ManiSkill/main/docker/nvidia_layers.json
 RUN mv nvidia_layers.json /etc/vulkan/implicit_layer.d/nvidia_layers.json
+
+ADD . .

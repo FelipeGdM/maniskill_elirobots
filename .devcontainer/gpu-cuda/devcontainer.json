@@ -41,6 +41,8 @@
 			]
 		}
 	},
+	"workspaceFolder": "/workspace",
+	"workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
 	"postCreateCommand": "uv sync --inexact"
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},

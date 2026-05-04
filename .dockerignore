@@ -1,1 +1,6 @@
 .venv/**/*
+videos/
+checkpoint/
+eval/
+runs*/
+runs/
