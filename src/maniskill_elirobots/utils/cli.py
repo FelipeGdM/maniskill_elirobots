@@ -1,5 +1,5 @@
 from dataclasses import dataclass, fields
-from typing import Any, override
+from typing import override
 
 
 @dataclass
@@ -28,10 +28,11 @@ class CliArgs:
     """path to a pretrained checkpoint file to start evaluation/training from"""
 
     # Algorithm specific arguments
-    env_id: str = "PushCubeEc-v1"
+    env_id: str = "PickCubeEc-v1"
     """the id of the environment"""
-    # total_timesteps: int = 10_000_000
-    total_timesteps: int = 8_000_000
+    robot_uid: str = "ec63"
+    """robot unique id"""
+    total_timesteps: int = 8_192_001
     """total timesteps of the experiments"""
     learning_rate: float = 3e-4
     """the learning rate of the optimizer"""
@@ -39,7 +40,7 @@ class CliArgs:
     """the number of parallel environments"""
     num_eval_envs: int = 8
     """the number of parallel evaluation environments"""
-    partial_reset: bool = True
+    partial_reset: bool = False
     """whether to let parallel environments reset upon termination instead of truncation"""
     eval_partial_reset: bool = False
     """whether to let parallel evaluation environments reset upon termination instead of truncation"""
@@ -61,7 +62,7 @@ class CliArgs:
     """the lambda for the general advantage estimation"""
     num_minibatches: int = 32
     """the number of mini-batches"""
-    update_epochs: int = 4
+    update_epochs: int = 8
     """the K epochs to update the policy"""
     norm_adv: bool = True
     """Toggles advantages normalization"""
@@ -79,11 +80,15 @@ class CliArgs:
     """the target KL divergence threshold"""
     reward_scale: float = 1.0
     """Scale the reward by this factor"""
-    eval_freq: int = 25
+    eval_freq: int = 16
     """evaluation frequency in terms of iterations"""
-    save_train_video_freq: int | None = 400_000
+    save_train_video_freq: int | None = None
     """frequency to save training videos in terms of iterations"""
     finite_horizon_gae: bool = False
+    """Penalty gain for qvel"""
+    qvel_penalty: float = 0.125
+    """Tolerance to consider qvel"""
+    qvel_tolerance: float = 0.25
 
     # to be filled in runtime
     batch_size: int = 0
