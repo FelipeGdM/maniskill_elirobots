@@ -40,9 +40,9 @@ class CliArgs:
     """the number of parallel environments"""
     num_eval_envs: int = 8
     """the number of parallel evaluation environments"""
-    partial_reset: bool = False
+    partial_reset: bool = True
     """whether to let parallel environments reset upon termination instead of truncation"""
-    eval_partial_reset: bool = False
+    eval_partial_reset: bool = True
     """whether to let parallel evaluation environments reset upon termination instead of truncation"""
     num_steps: int = 50
     """the number of steps to run in each environment per policy rollout"""
@@ -85,10 +85,12 @@ class CliArgs:
     save_train_video_freq: int | None = None
     """frequency to save training videos in terms of iterations"""
     finite_horizon_gae: bool = False
-    """Penalty gain for qvel"""
+    """Finite horizon"""
+
     qvel_penalty: float = 0.125
-    """Tolerance to consider qvel"""
+    """Penalty gain for qvel"""
     qvel_tolerance: float = 0.25
+    """Tolerance to consider qvel"""
 
     # to be filled in runtime
     batch_size: int = 0
