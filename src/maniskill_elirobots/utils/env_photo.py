@@ -1,3 +1,4 @@
+from pprint import pprint
 from typing import cast
 
 import gymnasium as gym
@@ -42,19 +43,44 @@ env = gym.make(
     obs_mode="state_dict",
     render_mode="rgb_array",
     sim_backend="physx_cpu",
-    control_mode="pd_joint_delta_pos",
+    control_mode="pd_joint_pos",
     sim_config={
         "sim_freq": 100,
         "control_freq": 2,
     },
 )
 
-obs, info = env.reset()
+init_qpos = torch.tensor([0.0, -np.pi / 2, 0.0, -np.pi / 2, np.pi / 2, 0.0, 0.0, 0.0])
 
-action = torch.tensor([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0])
+coin_xyz = torch.tensor([[2.4e-01, 1e-01, 3.7e-04]])
 
-for _ in range(4):
-    _ = env.step(action)
+obs, info = env.reset(
+    options={
+        # "coin_xyz": coin_xyz,
+        "init_qpos": init_qpos,
+    },
+)
+
+# action = torch.tensor([0.0, 0.0, 0.0, -np.pi / 2, np.pi / 2, 0.0, 1.0])
+
+# for _ in range(4):
+#     obs, reward, term, trunc, info = env.step(action)
+
+# action2 = torch.tensor([0.2, 0.0, 0.0, -np.pi / 2, np.pi / 2, 0.0, 1.0])
+
+# for _ in range(4):
+#     obs, reward, term, trunc, info = env.step(action2)
+
+base_env = cast("maniskill_elirobots.FlipCoinEnv", env.unwrapped)
+
+agent = base_env.agent
+
+coin = base_env.coin
+
+print(agent.is_grasping(coin))
+
+pprint(obs)  # noqa: T203
+pprint(info)  # noqa: T203
 
 photo = cast("torch.Tensor", env.render()).cpu()  # pyright: ignore[reportInvalidCast]
 
