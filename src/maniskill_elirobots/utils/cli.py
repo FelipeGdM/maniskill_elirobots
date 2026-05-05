@@ -36,7 +36,7 @@ class CliArgs:
     """total timesteps of the experiments"""
     learning_rate: float = 3e-4
     """the learning rate of the optimizer"""
-    num_envs: int = 512
+    num_envs: int = 1024
     """the number of parallel environments"""
     num_eval_envs: int = 8
     """the number of parallel evaluation environments"""
@@ -89,7 +89,7 @@ class CliArgs:
 
     qvel_penalty: float = 0.125
     """Penalty gain for qvel"""
-    qvel_tolerance: float = 0.25
+    qvel_tolerance: float = 0.5
     """Tolerance to consider qvel"""
 
     # to be filled in runtime
