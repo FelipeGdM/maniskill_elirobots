@@ -195,8 +195,8 @@ class EC63(BaseAgent):
 
     @override
     def is_static(self, threshold: float = 0.2):
-        qvel = cast("Tensor", self.robot.get_qvel()[..., :6])
-        return torch.max(torch.abs(qvel), 1)[0] <= threshold
+        qvel_mod = torch.linalg.norm(self.robot.get_qvel()[..., :6], axis=1)
+        return qvel_mod <= threshold
 
     @property
     def tcp_pos(self):
