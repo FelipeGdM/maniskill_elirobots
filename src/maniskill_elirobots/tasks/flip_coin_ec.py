@@ -33,7 +33,7 @@ from mani_skill.sensors.camera import CameraConfig
 from mani_skill.utils import common, sapien_utils
 
 # from mani_skill.utils.building import actors
-from mani_skill.utils.building.actors.common import build_cube, build_cylinder, build_red_white_target
+from mani_skill.utils.building.actors.common import build_cube, build_cylinder, build_red_white_target, build_twocolor_peg
 from mani_skill.utils.registration import register_env
 from mani_skill.utils.scene_builder.table.scene_builder import TableSceneBuilder
 from mani_skill.utils.structs import Pose
@@ -68,16 +68,16 @@ class FlipCoinEnv(BaseEnv):
 
     # here you can define a list of robots that this task is built to support and be solved by. This is so that
     # users won't be permitted to use robots not predefined here. If SUPPORTED_ROBOTS is not defined then users can do anything
-    SUPPORTED_ROBOTS = ["panda", "fetch", "ec63"]
+    SUPPORTED_ROBOTS = ["ec63"]
     # if you want to say you support multiple robots you can use SUPPORTED_ROBOTS = [["panda", "panda"], ["panda", "fetch"]] etc.
 
     # to help with programming, you can assert what type of agents are supported like below, and any shared properties of self.agent
     # become available to typecheckers and auto-completion. E.g. Panda and Fetch both share a property called .tcp (tool center point).
-    agent: Panda | EC63
+    agent: EC63
 
     initial_agent_pose = sapien.Pose(p=[-0.4, 0, 0])
 
-    coin_half_length = 10e-3
+    coin_half_length = 5e-3
     coin_radius = 15e-3
 
     initial_coin_pose = sapien.Pose(
@@ -158,15 +158,25 @@ class FlipCoinEnv(BaseEnv):
         #     initial_pose=self.initial_coin_pose,
         # )
 
-        self.scene_elements["coin"] = build_twocolor_cylinder(
+        self.scene_elements["coin"] = build_twocolor_peg(
             self.scene,
-            radius=self.coin_radius,
+            length=2 * self.coin_half_length,
+            width=self.coin_radius,
             color_1=[1, 0, 0, 1],
             color_2=[0, 0, 1, 1],
-            half_length=self.coin_half_length,
             name="coin",
             initial_pose=self.initial_coin_pose,
         )
+
+        # self.scene_elements["coin"] = build_twocolor_cylinder(
+        #     self.scene,
+        #     radius=self.coin_radius,
+        #     color_1=[1, 0, 0, 1],
+        #     color_2=[0, 0, 1, 1],
+        #     half_length=self.coin_half_length,
+        #     name="coin",
+        #     initial_pose=self.initial_coin_pose,
+        # )
 
         # we then add the cube that we want to push and give it a color and size using a convenience build_cube function
         # we specify the body_type to be "dynamic" as it should be able to move when touched by other objects / the robot
@@ -207,7 +217,7 @@ class FlipCoinEnv(BaseEnv):
         # this is just like _sensor_configs, but for adding cameras used for rendering when you call env.render()
         # when render_mode="rgb_array" or env.render_rgb_array()
         # Another feature here is that if there is a camera called render_camera, this is the default view shown initially when a GUI is opened
-        pose = sapien_utils.look_at([0.6, 0.0, 0.6], [0.0, 0.0, 0.35])
+        pose = sapien_utils.look_at([0.6, 0.0, 0.6], [-0.2, 0.0, 0.35])
         # pose = sapien_utils.look_at([0.2, 0.25, 0.35], [-0.2, 0.0, 0.2])
         return CameraConfig(
             "render_camera",
@@ -256,16 +266,18 @@ class FlipCoinEnv(BaseEnv):
             # when using scene builders, you must always call .initialize on them so they can set the correct poses of objects in the prebuilt scene
             # note that the table scene is built such that z=0 is the surface of the table.
 
+            init_qpos = self.init_qpos[self.robot_uids] if options.get("init_qpos") is None else cast("torch.Tensor", options.get("init_qpos"))
+
             self.scene_elements["table_scene"].initialize(env_idx)
             self.agent.reset(
-                init_qpos=self.init_qpos[self.robot_uids],
+                init_qpos=init_qpos,
             )
 
             # here we write some randomization code that randomizes the x, y position of the cube we are pushing in the range [-0.1, -0.1] to [0.1, 0.1]
             xyz = torch.zeros((env_count, 3))
             xyz[..., :2] = torch.rand((env_count, 2)) * self.coin_radius * 4 - 2 * self.coin_radius
 
-            coin_xyz = xyz + torch.tensor(self.initial_coin_pose.get_p())
+            coin_xyz = xyz + torch.tensor(self.initial_coin_pose.get_p()) if options.get("coin_xyz") is None else cast("torch.Tensor", options.get("coin_xyz"))
 
             self.coin.set_pose(
                 Pose.create_from_pq(
@@ -284,6 +296,8 @@ class FlipCoinEnv(BaseEnv):
             goal_region_xyz = coin_xyz.clone()
 
             goal_region_xyz[..., :2] += torch.rand((env_count, 2)) * 0.1 - 0.05
+
+            goal_region_xyz[..., 2] = 1e-5
 
             self.goal_region.set_pose(
                 Pose.create_from_pq(
@@ -308,20 +322,20 @@ class FlipCoinEnv(BaseEnv):
         # You may also include additional keys which will populate the info object returned by self.step and that will be given to
         # `_get_obs_extra` and `_compute_dense_reward`. Note that as everything is batched, you must return a batched array of
         # `self.num_envs` booleans (or 0/1 values) for success an dfail as done in the example below
-        is_obj_placed = torch.linalg.norm(self.goal_region.pose.p - self.coin.pose.p, axis=1) <= self.goal_thresh
+
+        obj_to_goal_dist = torch.linalg.norm(self.goal_region.pose.p[..., :2] - self.coin.pose.p[..., :2], axis=1)
+        is_obj_placed = obj_to_goal_dist <= self.goal_thresh
         is_grasped = self.agent.is_grasping(self.coin)
         is_robot_static = self.agent.is_static(self.qvel_tolerance)
 
         qvel_mod = torch.linalg.norm(self.agent.robot.get_qvel()[..., :6], axis=1)
-
-        tcp_to_obj_dist = torch.linalg.norm(self.coin.pose.p - self.agent.tcp_pose.p, axis=1)
 
         return {
             "success": is_obj_placed & is_robot_static,
             "is_obj_placed": is_obj_placed,
             "is_robot_static": is_robot_static,
             "is_grasped": is_grasped,
-            "tcp_to_obj_dist": tcp_to_obj_dist,
+            "obj_to_goal_dist": obj_to_goal_dist,
             "qvel_mod": qvel_mod,
         }
 
@@ -353,7 +367,7 @@ class FlipCoinEnv(BaseEnv):
         tcp_to_obj_dist = torch.linalg.norm(self.coin.pose.p - self.agent.tcp_pose.p, axis=1)
         reaching_reward = 1 - torch.tanh(5 * tcp_to_obj_dist)
 
-        obj_to_goal_dist = torch.linalg.norm(self.goal_region.pose.p - self.coin.pose.p, axis=1)
+        obj_to_goal_dist = info["obj_to_goal_dist"]
         place_reward = 1 - torch.tanh(5 * obj_to_goal_dist)
 
         static_reward = 1 - torch.tanh(self.qvel_penalty * info["qvel_mod"])
