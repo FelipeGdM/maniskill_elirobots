@@ -1,3 +1,6 @@
+from mani_skill.utils.building.actor_builder import ActorBuilder
+
+
 import sapien
 from mani_skill.envs.scene import ManiSkillScene
 from mani_skill.utils.building.actors.common import _build_by_type  # pyright: ignore[reportPrivateUsage]
@@ -19,7 +22,7 @@ def build_twocolor_cylinder(  # noqa: PLR0913
     initial_pose: Pose | sapien.Pose | None = None,
 ):
 
-    builder = scene.create_actor_builder()
+    builder: ActorBuilder = scene.create_actor_builder()
 
     if add_collision:
         _ = builder.add_cylinder_collision(
