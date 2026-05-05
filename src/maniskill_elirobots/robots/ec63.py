@@ -65,18 +65,37 @@ class EC63(BaseAgent):
         ),
     }
 
+    @property
+    def finger_right_link(self):
+        link = sapien_utils.get_obj_by_name(self.robot.get_links(), "claw_finger_1")
+        if not isinstance(link, Link):
+            msg = "claw_finger_1 should return exactly one link"
+            raise TypeError(msg)
+        return link
+
+    @property
+    def finger_left_link(self):
+        link = sapien_utils.get_obj_by_name(self.robot.get_links(), "claw_finger_2")
+        if not isinstance(link, Link):
+            msg = "claw_finger_2 should return exactly one link"
+            raise TypeError(msg)
+        return link
+
+    @property
+    def tcp(self):
+        link = sapien_utils.get_obj_by_name(self.robot.get_links(), self.ee_link_name)
+        if not isinstance(link, Link):
+            msg = f"{self.ee_link_name} should return exactly one link"
+            raise TypeError(msg)
+        return link
+
     @override
     def _after_init(self):
-        self.finger_right_link: list[Link] | Link | None = sapien_utils.get_obj_by_name(self.robot.get_links(), "claw_finger_1")  # pyright: ignore[reportUninitializedInstanceVariable]
-        self.finger_left_link: list[Link] | Link | None = sapien_utils.get_obj_by_name(self.robot.get_links(), "claw_finger_2")  # pyright: ignore[reportUninitializedInstanceVariable]
-        # self.finger1pad_link = sapien_utils.get_obj_by_name(self.robot.get_links(), "panda_leftfinger_pad")
-        # self.finger2pad_link = sapien_utils.get_obj_by_name(self.robot.get_links(), "panda_rightfinger_pad")
-        # Tool Center Point
-        self.tcp = cast("Link", sapien_utils.get_obj_by_name(self.robot.get_links(), self.ee_link_name))  # pyright: ignore[reportUninitializedInstanceVariable]
+        pass
 
     @property
     @override
-    def _controller_configs(self):  # pyright: ignore[reportIncompatibleMethodOverride]
+    def _controller_configs(self):
         controller_configs = {
             "pd_joint_pos": {
                 "arm": PDJointPosControllerConfig(
@@ -146,7 +165,7 @@ class EC63(BaseAgent):
         ]
 
     @override
-    def is_grasping(self, obj: Actor | None, min_force: float = 1e-3, max_angle: float = 360) -> Tensor:
+    def is_grasping(self, obj: Actor | None, min_force: float = 1e-3, max_angle: float = 80) -> Tensor:
         """Check if the robot is grasping an object
 
         Args:
@@ -162,12 +181,13 @@ class EC63(BaseAgent):
         lforce = cast("float", torch.linalg.norm(l_contact_forces, axis=1))
         rforce = cast("float", torch.linalg.norm(r_contact_forces, axis=1))
 
-        # direction to open the gripper
-        ldirection = cast("Tensor", self.finger_left_link.pose.to_transformation_matrix()[..., :3, 1])  # pyright: ignore[reportOptionalMemberAccess, reportAttributeAccessIssue]
-        rdirection = cast("Tensor", -self.finger_right_link.pose.to_transformation_matrix()[..., :3, 1])  # pyright: ignore[reportOptionalMemberAccess, reportAttributeAccessIssue]
+        left_finger_pos = self.finger_left_link.pose.p
+        right_finger_pos = self.finger_right_link.pose.p
 
-        langle = common.compute_angle_between(x1=ldirection, x2=l_contact_forces)
-        rangle = common.compute_angle_between(x1=rdirection, x2=r_contact_forces)
+        travel_dir = left_finger_pos - right_finger_pos
+
+        langle = common.compute_angle_between(x1=travel_dir, x2=l_contact_forces)
+        rangle = common.compute_angle_between(x1=-travel_dir, x2=r_contact_forces)
 
         lflag = torch.logical_and(lforce >= min_force, torch.rad2deg(langle) <= max_angle)
         rflag = torch.logical_and(rforce >= min_force, torch.rad2deg(rangle) <= max_angle)
