@@ -24,6 +24,14 @@ class EC63(BaseAgent):
 
     uid = "ec63"
     urdf_path = str(resources.files("maniskill_elirobots") / "assets/ec63/ec63_description.urdf")
+    urdf_config = dict(
+        _materials=dict(gripper=dict(static_friction=2.0, dynamic_friction=2.0, restitution=0.0)),
+        link=dict(
+            finger_1_joint=dict(material="gripper", patch_radius=0.1, min_patch_radius=0.1),
+            finger_2_joint=dict(material="gripper", patch_radius=0.1, min_patch_radius=0.1),
+        ),
+    )
+
     arm_joint_names = [
         "joint1",
         "joint2",
@@ -122,8 +130,8 @@ class EC63(BaseAgent):
                     joint_names=self.arm_joint_names,
                     # lower=None,
                     # upper=None,
-                    lower=-0.5,
-                    upper=0.5,
+                    lower=-0.1,
+                    upper=0.1,
                     stiffness=self.arm_stiffness,
                     damping=self.arm_damping,
                     force_limit=self.arm_force_limit,
