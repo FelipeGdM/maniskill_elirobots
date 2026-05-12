@@ -124,7 +124,7 @@ class FlipCoinEnv(BaseEnv):
 
     # in the __init__ function you can pick a default robot your task should use e.g. the panda robot by setting a default for robot_uids argument
     # note that if robot_uids is a list of robot uids, then we treat it as a multi-agent setup and load each robot separately.
-    def __init__(self, *args, robot_uids: str = "panda", robot_init_qpos_noise: float = 0.02, qvel_penalty=1.0, qvel_tolerance=0.2, angle_penalty=1.0, **kwargs):
+    def __init__(self, *args, robot_uids: str = "ec63", robot_init_qpos_noise: float = 0.02, qvel_penalty=1.0, qvel_tolerance=0.2, angle_penalty=1.0, **kwargs):
         self.robot_init_qpos_noise = robot_init_qpos_noise
         self.scene_elements = {}
         self.goal_radius = kwargs.get("goal_radius", 0.1)
@@ -213,7 +213,7 @@ class FlipCoinEnv(BaseEnv):
         self.scene_elements["goal_sphere"] = build_transparent_sphere(
             self.scene,
             radius=self.goal_thresh,
-            color=[0, 1, 0, 1],
+            color=[0, 1, 0, 0.5],
             name="goal_sphere",
             body_type="kinematic",
             add_collision=False,
@@ -243,7 +243,7 @@ class FlipCoinEnv(BaseEnv):
         # this is just like _sensor_configs, but for adding cameras used for rendering when you call env.render()
         # when render_mode="rgb_array" or env.render_rgb_array()
         # Another feature here is that if there is a camera called render_camera, this is the default view shown initially when a GUI is opened
-        pose = sapien_utils.look_at([0.3, 0.0, 0.5], [-0.2, 0.0, 0.35])
+        pose = sapien_utils.look_at([0.3, 0.0, 0.5], [-0.2, 0.0, 0.1])
         # pose = sapien_utils.look_at([0.2, 0.25, 0.35], [-0.2, 0.0, 0.2])
         return CameraConfig(
             "render_camera",
@@ -253,6 +253,7 @@ class FlipCoinEnv(BaseEnv):
             1.5,
             0.01,
             100,
+            shader_pack="default",
         )
 
     @override
