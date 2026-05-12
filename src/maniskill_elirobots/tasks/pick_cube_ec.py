@@ -200,10 +200,10 @@ class PickCubeEcEnv(BaseEnv):
 
         static_reward = 1 - torch.tanh(self.qvel_penalty * torch.linalg.norm(qvel, axis=1))
 
-        reward = reaching_reward + is_grasped * (1 + place_reward + is_obj_placed) + static_reward * is_obj_placed
+        reward = reaching_reward + is_grasped + place_reward * is_grasped + static_reward * is_obj_placed
 
         reward[info["success"]] = 5
-        return reward - 5
+        return reward
 
     @override
     def compute_normalized_dense_reward(self, obs: Any, action: torch.Tensor, info: dict):
