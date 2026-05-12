@@ -37,7 +37,8 @@
 				"ms-python.vscode-python-envs",
 				"charliermarsh.ruff",
 				"redhat.vscode-xml",
-				"ms-vscode-remote.remote-ssh"
+				"ms-vscode-remote.remote-ssh",
+				"bmalehorn.vscode-fish"
 			]
 		}
 	},

@@ -97,6 +97,15 @@ class EC63(BaseAgent):
             raise TypeError(msg)
         return link
 
+    @property
+    def gripper_travel_dir(self):
+        left_finger_pos = self.finger_left_link.pose.p
+        right_finger_pos = self.finger_right_link.pose.p
+
+        travel_vector = left_finger_pos - right_finger_pos
+
+        return cast("torch.Tensor", travel_vector / torch.linalg.norm(travel_vector, axis=1, keepdim=True))
+
     @override
     def _after_init(self):
         pass

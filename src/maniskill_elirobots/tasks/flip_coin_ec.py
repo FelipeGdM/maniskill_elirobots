@@ -33,13 +33,14 @@ from mani_skill.sensors.camera import CameraConfig
 from mani_skill.utils import common, sapien_utils
 
 # from mani_skill.utils.building import actors
-from mani_skill.utils.building.actors.common import build_cube, build_cylinder, build_red_white_target, build_twocolor_peg
+from mani_skill.utils.building.actors.common import build_cube, build_cylinder, build_red_white_target, build_sphere, build_twocolor_peg
 from mani_skill.utils.registration import register_env
 from mani_skill.utils.scene_builder.table.scene_builder import TableSceneBuilder
 from mani_skill.utils.structs import Pose
 from mani_skill.utils.structs.actor import Actor
 from mani_skill.utils.structs.types import GPUMemoryConfig, SimConfig
 from quatorch import Quaternion, quaternion
+from torch.nn import functional
 from transforms3d.euler import euler2quat
 from transforms3d.quaternions import qconjugate, quat2axangle
 
@@ -80,8 +81,10 @@ class FlipCoinEnv(BaseEnv):
 
     initial_agent_pose = sapien.Pose(p=[-0.4, 0, 0])
 
-    coin_half_length = 10e-3
-    coin_radius = 15e-3
+    coin_half_length = 5e-3
+    coin_radius = 18e-3
+
+    coin_max_height = 200e-3
 
     coin_normal_axis = torch.tensor([1.0, 0.0, 0.0])
     coin_desired_axis = torch.tensor([0.0, 0.0, 1.0])
@@ -102,6 +105,10 @@ class FlipCoinEnv(BaseEnv):
         "ec63": torch.tensor([0.0, -6 * np.pi / 8, 5 * np.pi / 8, -3 * np.pi / 8, 4 * np.pi / 8, 0, 0, 0]),
         "panda": torch.tensor([0.0, np.pi / 8, 0, -np.pi * 5 / 8, 0, np.pi * 3 / 4, np.pi / 4, 0.04, 0.04]),
     }
+
+    @property
+    def goal_sphere(self) -> Actor:
+        return self.scene_elements["goal_sphere"]
 
     @property
     def goal_region(self) -> Actor:
@@ -203,11 +210,22 @@ class FlipCoinEnv(BaseEnv):
             initial_pose=self.initial_goal_pose,
         )
 
+        self.scene_elements["goal_sphere"] = build_sphere(
+            self.scene,
+            radius=self.goal_thresh,
+            color=[0, 1, 0, 0.25],
+            name="goal_sphere",
+            body_type="kinematic",
+            add_collision=False,
+            initial_pose=sapien.Pose(),
+        )
+
         # optionally you can automatically hide some Actors from view by appending to the self._hidden_objects list. When visual observations
         # are generated or env.render_sensors() is called or env.render() is called with render_mode="sensors", the actor will not show up.
         # This is useful if you intend to add some visual goal sites as e.g. done in PickCube that aren't actually part of the task
         # and are there just for generating evaluation videos.
         # self._hidden_objects.append(self.goal_region)
+        self._hidden_objects.append(self.scene_elements["goal_sphere"])
 
     @property
     @override
@@ -300,7 +318,7 @@ class FlipCoinEnv(BaseEnv):
             self.coin.set_pose(
                 Pose.create_from_pq(
                     p=coin_xyz,
-                    q=coin_q,
+                    q=self.initial_coin_pose.get_q(),
                 ),
             )
 
@@ -326,6 +344,16 @@ class FlipCoinEnv(BaseEnv):
                 ),
             )
 
+            sphere_xyz = goal_region_xyz.clone()
+
+            sphere_xyz[..., 2] = self.coin_half_length + torch.rand((env_count,)) * self.coin_max_height
+
+            self.goal_sphere.set_pose(
+                Pose.create_from_pq(
+                    p=sphere_xyz,
+                ),
+            )
+
     """
     Modifying observations, goal parameterization, and success conditions for your task
 
@@ -343,24 +371,28 @@ class FlipCoinEnv(BaseEnv):
         # `_get_obs_extra` and `_compute_dense_reward`. Note that as everything is batched, you must return a batched array of
         # `self.num_envs` booleans (or 0/1 values) for success an dfail as done in the example below
 
-        obj_to_goal_dist = torch.linalg.norm(self.goal_region.pose.p[..., :2] - self.coin.pose.p[..., :2], axis=1)
+        obj_displacement_vect = self.goal_sphere.pose.p - self.coin.pose.p
+
+        obj_to_goal_dist = torch.linalg.norm(obj_displacement_vect, axis=1)
         is_obj_placed = obj_to_goal_dist <= self.goal_thresh
         # is_robot_static = self.agent.is_static(self.qvel_tolerance)
 
         qvel_mod = torch.linalg.norm(self.agent.robot.get_qvel()[..., :6], axis=1)
         is_obj_static = torch.linalg.norm(self.coin.get_linear_velocity(), axis=1) <= self.qvel_tolerance
 
-        is_grasped = self.agent.is_grasping(self.coin)
+        coin_q = Quaternion(self.coin.pose.get_q())
+        coin_normal_axis_self_reference = self.coin_normal_axis.to(device=self.device)
+        coin_normal_axis_world_reference = cast("torch.Tensor", coin_q.rotate_vector(coin_normal_axis_self_reference))
 
-        # desired_orientation = Quaternion(torch.tensor(euler2quat(0, -np.pi / 2, 0), device=self.device))
+        is_grasped = self.agent.is_grasping(self.coin) & (torch.abs(functional.cosine_similarity(coin_normal_axis_world_reference, self.agent.gripper_travel_dir)) < 0.1)  # noqa: PLR2004
 
         obj_angle_dist = coin_angle(
-            self.coin.pose.get_q(),
-            self.coin_normal_axis.to(device=self.device),
+            coin_q,
+            coin_normal_axis_self_reference,
             self.coin_desired_axis.to(device=self.device),
         )
 
-        is_angle_zero = obj_angle_dist < 15  # noqa: PLR2004
+        is_angle_zero = obj_angle_dist < 45  # noqa: PLR2004
 
         return {
             # "success": is_obj_placed & is_obj_static & is_grasped,
@@ -370,6 +402,7 @@ class FlipCoinEnv(BaseEnv):
             "is_grasped": is_grasped,
             "is_angle_zero": is_angle_zero,
             "obj_to_goal_dist": obj_to_goal_dist,
+            "obj_displacement_vect": obj_displacement_vect,
             "obj_angle_dist": obj_angle_dist,
             "qvel_mod": qvel_mod,
         }
@@ -383,13 +416,13 @@ class FlipCoinEnv(BaseEnv):
         obs = dict(
             is_grasped=info["is_grasped"],
             tcp_pose=self.agent.tcp_pose.raw_pose,
-            goal_pos=self.goal_region.pose.p,
+            goal_pos=self.goal_sphere.pose.p,
         )
         if "state" in self.obs_mode:
             obs.update(
                 obj_pose=self.coin.pose.raw_pose,
                 tcp_to_obj_pos=self.coin.pose.p - self.agent.tcp_pose.p,
-                obj_to_goal_dist=info["obj_to_goal_dist"],
+                obj_displacement_vect=info["obj_displacement_vect"],
                 obj_angle_dist=info["obj_angle_dist"] * torch.pi / 180,
             )
         return obs

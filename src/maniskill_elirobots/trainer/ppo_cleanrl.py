@@ -29,7 +29,8 @@ from maniskill_elirobots.utils.episode_logger import RecordEpisode
 
 gym.register_envs(maniskill_elirobots)
 
-REWARD_MODE = "dense"
+# REWARD_MODE = "dense"
+REWARD_MODE = "normalized_dense"
 
 
 def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
@@ -133,7 +134,7 @@ def main(args: CliArgs):
         num_envs=args.num_envs if not args.evaluate else 1,
         reconfiguration_freq=args.reconfiguration_freq,
         angle_penalty=args.angle_penalty,
-        # reward_mode=REWARD_MODE,
+        reward_mode=REWARD_MODE,
         # qvel_penalty=args.qvel_penalty,
         # # qvel_tolerance=args.qvel_tolerance,
         **env_kwargs,
@@ -144,7 +145,7 @@ def main(args: CliArgs):
         num_envs=args.num_eval_envs,
         reconfiguration_freq=args.eval_reconfiguration_freq,
         angle_penalty=args.angle_penalty,
-        # reward_mode=REWARD_MODE,
+        reward_mode=REWARD_MODE,
         # # qvel_penalty=args.qvel_penalty,
         # # qvel_tolerance=args.qvel_tolerance,
         **env_kwargs,
@@ -420,7 +421,7 @@ def main(args: CliArgs):
                 loss = pg_loss - args.ent_coef * entropy_loss + v_loss * args.vf_coef
 
                 optimizer.zero_grad()
-                loss.backward()
+                _ = loss.backward()
                 nn.utils.clip_grad_norm_(agent.parameters(), args.max_grad_norm)
                 optimizer.step()
 

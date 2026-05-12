@@ -3,10 +3,10 @@
 set -e DISPLAY
 
 python src/maniskill_elirobots/trainer/ppo_cleanrl.py \
-    --env_id="PickCube-v1" \
+    --env_id="PickCubeEc-v1" \
     --exp_name="pickcube-panda-01" \
     --robot-uid="panda" \
-    --num-envs=512 \
+    --num-envs=1024 \
     --update_epochs=8 \
     --num_minibatches=32 \
     --total_timesteps=8_192_001 \
