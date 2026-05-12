@@ -47,7 +47,7 @@ from transforms3d.quaternions import qconjugate, quat2axangle
 from maniskill_elirobots.robots.ec63 import EC63
 from maniskill_elirobots.utils.math import coin_angle
 
-from .scene_builder.actors import build_twocolor_cylinder
+from .scene_builder.actors import build_transparent_sphere, build_twocolor_cylinder
 
 
 # register the environment by a unique ID and specify a max time limit. Now once this file is imported you can do gym.make("FlipCoin-v0")
@@ -210,10 +210,10 @@ class FlipCoinEnv(BaseEnv):
             initial_pose=self.initial_goal_pose,
         )
 
-        self.scene_elements["goal_sphere"] = build_sphere(
+        self.scene_elements["goal_sphere"] = build_transparent_sphere(
             self.scene,
             radius=self.goal_thresh,
-            color=[0.75, 1, 0, 1],
+            color=[0, 1, 0, 1],
             name="goal_sphere",
             body_type="kinematic",
             add_collision=False,

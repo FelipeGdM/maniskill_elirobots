@@ -1,8 +1,6 @@
-from mani_skill.utils.building.actor_builder import ActorBuilder
-
-
 import sapien
 from mani_skill.envs.scene import ManiSkillScene
+from mani_skill.utils.building.actor_builder import ActorBuilder
 from mani_skill.utils.building.actors.common import _build_by_type  # pyright: ignore[reportPrivateUsage]
 from mani_skill.utils.structs.pose import Pose
 from mani_skill.utils.structs.types import Array
@@ -48,4 +46,30 @@ def build_twocolor_cylinder(  # noqa: PLR0913
         ),
     )
 
+    return _build_by_type(builder, name, body_type, scene_idxs, initial_pose)
+
+
+def build_transparent_sphere(  # noqa: PLR0913
+    scene: ManiSkillScene,
+    radius: float,
+    color,
+    name: str,
+    *,
+    body_type: str = "dynamic",
+    add_collision: bool = True,
+    scene_idxs: Array | None = None,
+    initial_pose: Pose | sapien.Pose | None = None,
+):
+    builder = scene.create_actor_builder()
+    if add_collision:
+        _ = builder.add_sphere_collision(
+            radius=radius,
+        )
+    _ = builder.add_sphere_visual(
+        radius=radius,
+        material=sapien.render.RenderMaterial(
+            base_color=color,
+            transmission=0.75,
+        ),
+    )
     return _build_by_type(builder, name, body_type, scene_idxs, initial_pose)
