@@ -39,9 +39,12 @@ from mani_skill.utils.scene_builder.table.scene_builder import TableSceneBuilder
 from mani_skill.utils.structs import Pose
 from mani_skill.utils.structs.actor import Actor
 from mani_skill.utils.structs.types import GPUMemoryConfig, SimConfig
+from quatorch import Quaternion, quaternion
 from transforms3d.euler import euler2quat
+from transforms3d.quaternions import qconjugate, quat2axangle
 
 from maniskill_elirobots.robots.ec63 import EC63
+from maniskill_elirobots.utils.math import coin_angle
 
 from .scene_builder.actors import build_twocolor_cylinder
 
@@ -80,6 +83,9 @@ class FlipCoinEnv(BaseEnv):
     coin_half_length = 10e-3
     coin_radius = 15e-3
 
+    coin_normal_axis = torch.tensor([1.0, 0.0, 0.0])
+    coin_desired_axis = torch.tensor([0.0, 0.0, 1.0])
+
     initial_coin_pose = sapien.Pose(
         p=[-0.1, 0, 2 * coin_half_length],
         q=euler2quat(0, np.pi / 2, 0),
@@ -111,13 +117,15 @@ class FlipCoinEnv(BaseEnv):
 
     # in the __init__ function you can pick a default robot your task should use e.g. the panda robot by setting a default for robot_uids argument
     # note that if robot_uids is a list of robot uids, then we treat it as a multi-agent setup and load each robot separately.
-    def __init__(self, *args, robot_uids: str = "panda", robot_init_qpos_noise: float = 0.02, qvel_penalty=1.0, qvel_tolerance=0.2, **kwargs):
+    def __init__(self, *args, robot_uids: str = "panda", robot_init_qpos_noise: float = 0.02, qvel_penalty=1.0, qvel_tolerance=0.2, angle_penalty=1.0, **kwargs):
         self.robot_init_qpos_noise = robot_init_qpos_noise
         self.scene_elements = {}
         self.goal_radius = kwargs.get("goal_radius", 0.1)
 
         self.qvel_penalty = qvel_penalty
         self.qvel_tolerance = qvel_tolerance
+
+        self.angle_penalty = angle_penalty
 
         super().__init__(*args, robot_uids=robot_uids, **kwargs)
 
@@ -217,7 +225,7 @@ class FlipCoinEnv(BaseEnv):
         # this is just like _sensor_configs, but for adding cameras used for rendering when you call env.render()
         # when render_mode="rgb_array" or env.render_rgb_array()
         # Another feature here is that if there is a camera called render_camera, this is the default view shown initially when a GUI is opened
-        pose = sapien_utils.look_at([0.2, 0.0, 0.5], [-0.2, 0.0, 0.35])
+        pose = sapien_utils.look_at([0.3, 0.0, 0.5], [-0.2, 0.0, 0.35])
         # pose = sapien_utils.look_at([0.2, 0.25, 0.35], [-0.2, 0.0, 0.2])
         return CameraConfig(
             "render_camera",
@@ -279,10 +287,20 @@ class FlipCoinEnv(BaseEnv):
 
             coin_xyz = xyz + torch.tensor(self.initial_coin_pose.get_p()) if options.get("coin_xyz") is None else cast("torch.Tensor", options.get("coin_xyz"))
 
+            angle_mult = torch.randint(0, 4, size=(env_count,))
+            angle_axis = 2 * torch.pi * torch.rand((env_count, 1))
+
+            axis = torch.stack([torch.sin(angle_axis), torch.cos(angle_axis), torch.zeros((env_count, 1))], dim=1).reshape((env_count, 3))
+
+            coin_q = Quaternion.from_axis_angle(
+                axis,
+                angle=angle_mult * np.pi / 2,
+            )
+
             self.coin.set_pose(
                 Pose.create_from_pq(
                     p=coin_xyz,
-                    q=self.initial_coin_pose.get_q(),
+                    q=coin_q,
                 ),
             )
 
@@ -295,7 +313,9 @@ class FlipCoinEnv(BaseEnv):
             # here we set the location of that red/white target (the goal region). In particular here, we set the position to be in front of the cube
             goal_region_xyz = coin_xyz.clone()
 
-            goal_region_xyz[..., :2] += torch.rand((env_count, 2)) * 0.1 - 0.05
+            theta = 2 * torch.pi * torch.rand((env_count, 1))
+
+            goal_region_xyz[..., :2] += 4 * self.coin_radius * torch.stack([torch.sin(theta), torch.cos(theta)], dim=1).reshape((env_count, 2))
 
             goal_region_xyz[..., 2] = 1e-5
 
@@ -325,17 +345,32 @@ class FlipCoinEnv(BaseEnv):
 
         obj_to_goal_dist = torch.linalg.norm(self.goal_region.pose.p[..., :2] - self.coin.pose.p[..., :2], axis=1)
         is_obj_placed = obj_to_goal_dist <= self.goal_thresh
-        is_grasped = self.agent.is_grasping(self.coin)
-        is_robot_static = self.agent.is_static(self.qvel_tolerance)
+        # is_robot_static = self.agent.is_static(self.qvel_tolerance)
 
         qvel_mod = torch.linalg.norm(self.agent.robot.get_qvel()[..., :6], axis=1)
+        is_obj_static = torch.linalg.norm(self.coin.get_linear_velocity(), axis=1) <= self.qvel_tolerance
+
+        is_grasped = self.agent.is_grasping(self.coin)
+
+        # desired_orientation = Quaternion(torch.tensor(euler2quat(0, -np.pi / 2, 0), device=self.device))
+
+        obj_angle_dist = coin_angle(
+            self.coin.pose.get_q(),
+            self.coin_normal_axis.to(device=self.device),
+            self.coin_desired_axis.to(device=self.device),
+        )
+
+        is_angle_zero = obj_angle_dist < 15  # noqa: PLR2004
 
         return {
-            "success": is_obj_placed & is_robot_static,
+            # "success": is_obj_placed & is_obj_static & is_grasped,
+            "success": is_obj_placed & is_obj_static & is_angle_zero,
             "is_obj_placed": is_obj_placed,
-            "is_robot_static": is_robot_static,
+            "is_obj_static": is_obj_static,
             "is_grasped": is_grasped,
+            "is_angle_zero": is_angle_zero,
             "obj_to_goal_dist": obj_to_goal_dist,
+            "obj_angle_dist": obj_angle_dist,
             "qvel_mod": qvel_mod,
         }
 
@@ -354,7 +389,8 @@ class FlipCoinEnv(BaseEnv):
             obs.update(
                 obj_pose=self.coin.pose.raw_pose,
                 tcp_to_obj_pos=self.coin.pose.p - self.agent.tcp_pose.p,
-                obj_to_goal_pos=self.goal_region.pose.p - self.coin.pose.p,
+                obj_to_goal_dist=info["obj_to_goal_dist"],
+                obj_angle_dist=info["obj_angle_dist"] * torch.pi / 180,
             )
         return obs
 
@@ -365,20 +401,28 @@ class FlipCoinEnv(BaseEnv):
         # Moreover, you have access to the info object which is generated by the `evaluate` function above
 
         tcp_to_obj_dist = torch.linalg.norm(self.coin.pose.p - self.agent.tcp_pose.p, axis=1)
-        reaching_reward = 1 - torch.tanh(5 * tcp_to_obj_dist)
+        # reaching_reward = 1 - torch.tanh(5 * tcp_to_obj_dist)
+        reaching_reward = torch.exp(-5 * tcp_to_obj_dist)
 
         obj_to_goal_dist = info["obj_to_goal_dist"]
-        place_reward = 1 - torch.tanh(5 * obj_to_goal_dist)
+        place_reward = torch.exp(-5 * obj_to_goal_dist)
 
-        static_reward = 1 - torch.tanh(self.qvel_penalty * info["qvel_mod"])
+        # static_reward = 1 - torch.tanh(self.qvel_penalty * info["qvel_mod"])
+        # static_reward = torch.exp(-self.qvel_penalty * info["qvel_mod"])
+
+        # angle_reward = torch.exp(-self.angle_penalty * info["obj_angle_dist"])
+        angle_reward = torch.cos(info["obj_angle_dist"] / 180 * torch.pi)
 
         is_grasped = info["is_grasped"]
-        is_obj_placed = info["is_obj_placed"]
-        success = info["success"]
+        # is_obj_placed = info["is_obj_placed"]
+        is_angle_zero = info["is_angle_zero"]
 
-        reward = reaching_reward + is_grasped + place_reward * is_grasped + static_reward * is_obj_placed * is_grasped + success
+        # reward = reaching_reward + is_grasped + place_reward * is_grasped + static_reward * is_obj_placed + angle_reward * is_obj_placed
+        reward = reaching_reward + is_grasped + angle_reward * is_grasped + place_reward * is_grasped * is_angle_zero  # + static_reward * is_obj_placed
 
-        return reward - 5.0
+        reward[info["success"]] = 5.0
+
+        return reward
 
     @override
     def compute_normalized_dense_reward(self, obs: Any, action: torch.Tensor, info: dict):
