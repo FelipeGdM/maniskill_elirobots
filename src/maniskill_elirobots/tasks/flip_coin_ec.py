@@ -213,7 +213,7 @@ class FlipCoinEnv(BaseEnv):
         self.scene_elements["goal_sphere"] = build_sphere(
             self.scene,
             radius=self.goal_thresh,
-            color=[0, 1, 0, 0.25],
+            color=[0.75, 1, 0, 1],
             name="goal_sphere",
             body_type="kinematic",
             add_collision=False,
