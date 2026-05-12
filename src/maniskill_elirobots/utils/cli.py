@@ -87,10 +87,13 @@ class CliArgs:
     finite_horizon_gae: bool = False
     """Finite horizon"""
 
-    qvel_penalty: float = 0.125
+    qvel_penalty: float = 1.0
     """Penalty gain for qvel"""
     qvel_tolerance: float = 0.5
     """Tolerance to consider qvel"""
+
+    angle_penalty: float = 1.0
+    """Penalty gain for coin angle"""
 
     # to be filled in runtime
     batch_size: int = 0

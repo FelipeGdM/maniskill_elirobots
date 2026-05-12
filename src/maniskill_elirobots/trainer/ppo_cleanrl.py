@@ -29,6 +29,8 @@ from maniskill_elirobots.utils.episode_logger import RecordEpisode
 
 gym.register_envs(maniskill_elirobots)
 
+REWARD_MODE = "dense"
+
 
 def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
     torch.nn.init.orthogonal_(layer.weight, std)
@@ -130,8 +132,10 @@ def main(args: CliArgs):
         robot_uids=args.robot_uid,
         num_envs=args.num_envs if not args.evaluate else 1,
         reconfiguration_freq=args.reconfiguration_freq,
-        qvel_penalty=args.qvel_penalty,
-        qvel_tolerance=args.qvel_tolerance,
+        angle_penalty=args.angle_penalty,
+        # reward_mode=REWARD_MODE,
+        # qvel_penalty=args.qvel_penalty,
+        # # qvel_tolerance=args.qvel_tolerance,
         **env_kwargs,
     )
     eval_envs = gym.make(
@@ -139,8 +143,10 @@ def main(args: CliArgs):
         robot_uids=args.robot_uid,
         num_envs=args.num_eval_envs,
         reconfiguration_freq=args.eval_reconfiguration_freq,
-        qvel_penalty=args.qvel_penalty,
-        qvel_tolerance=args.qvel_tolerance,
+        angle_penalty=args.angle_penalty,
+        # reward_mode=REWARD_MODE,
+        # # qvel_penalty=args.qvel_penalty,
+        # # qvel_tolerance=args.qvel_tolerance,
         **env_kwargs,
     )
 
@@ -194,8 +200,22 @@ def main(args: CliArgs):
             import wandb
 
             config = vars(args)
-            config["env_cfg"] = dict(**env_kwargs, num_envs=args.num_envs, env_id=args.env_id, reward_mode="normalized_dense", env_horizon=max_episode_steps, partial_reset=args.partial_reset)
-            config["eval_env_cfg"] = dict(**env_kwargs, num_envs=args.num_eval_envs, env_id=args.env_id, reward_mode="normalized_dense", env_horizon=max_episode_steps, partial_reset=False)
+            config["env_cfg"] = dict(
+                **env_kwargs,
+                num_envs=args.num_envs,
+                env_id=args.env_id,
+                reward_mode=REWARD_MODE,
+                env_horizon=max_episode_steps,
+                partial_reset=args.partial_reset,
+            )
+            config["eval_env_cfg"] = dict(
+                **env_kwargs,
+                num_envs=args.num_eval_envs,
+                env_id=args.env_id,
+                reward_mode=REWARD_MODE,
+                env_horizon=max_episode_steps,
+                partial_reset=False,
+            )
             wandb.init(project=args.wandb_project_name, entity=args.wandb_entity, sync_tensorboard=False, config=config, name=run_name, save_code=True, group="PPO", tags=["ppo", "walltime_efficient"])
         writer = SummaryWriter(f"runs/{run_name}")
         writer.add_text(
