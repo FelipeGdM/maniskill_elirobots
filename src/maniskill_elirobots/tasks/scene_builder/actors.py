@@ -69,7 +69,7 @@ def build_transparent_sphere(  # noqa: PLR0913
         radius=radius,
         material=sapien.render.RenderMaterial(
             base_color=color,
-            transmission=0.75,
+            transmission=0.5,
         ),
     )
     return _build_by_type(builder, name, body_type, scene_idxs, initial_pose)
