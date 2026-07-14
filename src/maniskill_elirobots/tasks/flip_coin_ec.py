@@ -45,9 +45,8 @@ from transforms3d.euler import euler2quat
 from transforms3d.quaternions import qconjugate, quat2axangle
 
 from maniskill_elirobots.robots.ec63 import EC63
+from maniskill_elirobots.tasks.scene_builder.actors import build_transparent_sphere, build_twocolor_cylinder
 from maniskill_elirobots.utils.math import coin_angle
-
-from .scene_builder.actors import build_transparent_sphere, build_twocolor_cylinder
 
 
 # register the environment by a unique ID and specify a max time limit. Now once this file is imported you can do gym.make("FlipCoin-v0")
@@ -479,3 +478,22 @@ class FlipCoinEnv(BaseEnv):
         # the exact same in terms of output rewards, observations, success etc. should you reset state to a given state and take the same actions
         # self.goal_pos = state["goal_pos"]
         super().set_state_dict(state, env_idx)
+
+
+if __name__ == "__main__":
+    from pprint import pprint
+
+    import gymnasium as gym
+
+    envs = gym.make(
+        "FlipCoin-v1",
+        robot_uids="ec63",
+        num_envs=1,
+        reward_mode="dense",
+        obs_mode="state_dict",
+        control_mode="pd_joint_delta_pos",
+    )
+
+    obs, info = envs.reset()
+
+    pprint(obs, sort_dicts=False)  # noqa: T203
