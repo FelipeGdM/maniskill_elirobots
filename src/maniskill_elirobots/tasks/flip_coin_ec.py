@@ -242,7 +242,7 @@ class FlipCoinEnv(BaseEnv):
         # this is just like _sensor_configs, but for adding cameras used for rendering when you call env.render()
         # when render_mode="rgb_array" or env.render_rgb_array()
         # Another feature here is that if there is a camera called render_camera, this is the default view shown initially when a GUI is opened
-        pose = sapien_utils.look_at([0.3, 0.0, 0.5], [-0.2, 0.0, 0.1])
+        pose = sapien_utils.look_at([0.15, 0.0, 0.5], [-0.2, 0.0, 0.2])
         # pose = sapien_utils.look_at([0.2, 0.25, 0.35], [-0.2, 0.0, 0.2])
         return CameraConfig(
             "render_camera",
