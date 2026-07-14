@@ -36,9 +36,9 @@ class CliArgs:
     """total timesteps of the experiments"""
     learning_rate: float = 3e-4
     """the learning rate of the optimizer"""
-    num_envs: int = 1024 * 4
+    num_envs: int = 1024 * 2
     """the number of parallel environments"""
-    num_eval_envs: int = 16
+    num_eval_envs: int = 8
     """the number of parallel evaluation environments"""
     partial_reset: bool = False
     """whether to let parallel environments reset upon termination instead of truncation"""
