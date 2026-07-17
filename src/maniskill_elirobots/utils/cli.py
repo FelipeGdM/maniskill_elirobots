@@ -56,11 +56,11 @@ class CliArgs:
     """the control mode to use for the environment"""
     anneal_lr: bool = False
     """Toggle learning rate annealing for policy and value networks"""
-    gamma: float = 0.8
+    gamma: float = 0.99
     """the discount factor gamma"""
     gae_lambda: float = 0.9
     """the lambda for the general advantage estimation"""
-    num_minibatches: int = 4
+    num_minibatches: int = 256
     """the number of mini-batches"""
     update_epochs: int = 8
     """the K epochs to update the policy"""
