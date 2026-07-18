@@ -77,8 +77,6 @@ class PickCubeEcEnv(BaseEnv):
         self.qvel_penalty = qvel_penalty
         self.qvel_tolerance = qvel_tolerance
 
-        print(f"{self.qvel_penalty=} {self.qvel_tolerance=}")
-
         super().__init__(*args, robot_uids=robot_uids, **kwargs)
         # self.table_scene = None
         # self.cube = None
