@@ -15,10 +15,15 @@ dependencies = [
     "setuptools==81.0.0",
     "tensorboard>=2.20.0",
     "pytest>=9.0.2,<10.0.0",
-    "ray[rllib]==2.54.1",
+    # "ray[rllib]==2.54.1",
     "moviepy>=2.2.1",
     "stable-baselines3>=2.8.0",
     "quatorch>=0.3.0",
+    "rq>=2.10.0",
+    "rq-dashboard>=0.9.0",
+    "celery>=5.6.3",
+    "flower>=2.0.1",
+    "redis>=8.0.1",
 ]
 
 [tool.uv]
