@@ -1,3 +1,5 @@
+import datetime
+import time
 from typing import Any
 
 import gymnasium as gym
@@ -9,7 +11,9 @@ from mani_skill.utils.gym_utils import ManiSkillVectorEnv
 from mani_skill.utils.wrappers.record import RecordEpisode
 from mani_skill.vector.wrappers.sb3 import ManiSkillSB3VectorEnv
 from stable_baselines3 import PPO
+from stable_baselines3.common.vec_env import VecVideoRecorder
 
+# from stable_baselines3.sac.policies import SACPolicy
 from maniskill_elirobots.utils import CliArgs
 
 ROBOT_UID = "ec63"
@@ -50,54 +54,35 @@ def main(args: CliArgs) -> None:
         **env_kwargs,
     )
 
-    def save_video_trigger(x: int) -> bool:
-        return (x % args.save_train_video_freq) == 0  # pyright: ignore[reportOperatorIssue]
-
-    # video_envs = RecordEpisode(
-    #     envs,
-    #     output_dir="videos",
-    #     save_video_trigger=save_video_trigger,
-    #     max_steps_per_video=50,
-    #     video_fps=30,
-    #     info_on_video=True,
-    # )
-
-    video_envs = RecordVideo(
-        envs,
-        video_folder="videos2",
-        step_trigger=save_video_trigger,
-        video_length=50,
-        fps=30,
-    )
-
-    sb3_vec_envs = ManiSkillSB3VectorEnv(video_envs)
-
-    print(sb3_vec_envs.get_attr("render_mode"))
+    sb3_vec_envs = ManiSkillSB3VectorEnv(envs)
 
     model = PPO(
-        "MlpPolicy",
+        policy="MlpPolicy",
         env=sb3_vec_envs,
-        verbose=1,
-        tensorboard_log=f"./runs/{args.exp_name}",
-        device="cuda",
+        learning_rate=args.learning_rate,
+        n_steps=args.num_steps,
+        batch_size=args.minibatch_size,
+        n_epochs=args.update_epochs,
         gamma=args.gamma,
         gae_lambda=args.gae_lambda,
-        batch_size=args.minibatch_size,
-        n_steps=args.num_steps,
-        n_epochs=args.update_epochs,
-        # clip_range=args.clip,
-        # clip_range_vf: None | float | Schedule = None,
+        clip_range=args.clip_coef,
+        clip_range_vf=None,
         normalize_advantage=True,
         ent_coef=args.ent_coef,
         vf_coef=args.vf_coef,
-        max_grad_norm=0.5,
+        max_grad_norm=args.max_grad_norm,
         use_sde=False,
         sde_sample_freq=-1,
         rollout_buffer_class=None,
         rollout_buffer_kwargs=None,
-        target_kl=None,
+        target_kl=args.target_kl,
         stats_window_size=100,
-        policy_kwargs=None,
+        tensorboard_log=f"runs_sb3/{args.exp_name}",
+        policy_kwargs={"net_arch": [256, 256]},
+        verbose=1,
+        seed=args.seed,
+        device="cuda",
+        _init_setup_model=True,
     )
 
     _ = model.learn(total_timesteps=args.total_timesteps, progress_bar=True)
@@ -106,10 +91,9 @@ def main(args: CliArgs) -> None:
 
 
 if __name__ == "__main__":
-    # args = tyro.cli(CliArgs)  # pyright: ignore[reportAny]
-
     args = CliArgs(
-        exp_name="topster2",
-        num_envs=256,
+        env_id="FlipCoin-v1",
+        exp_name=f"flipcoin-ec63-{int(datetime.datetime.now(tz=datetime.UTC).timestamp())}",
+        # ent_coef=0.0,
     )
     main(args)
