@@ -8,3 +8,5 @@ eval/
 videos/
 
 checkpoint/
+
+*.zip
