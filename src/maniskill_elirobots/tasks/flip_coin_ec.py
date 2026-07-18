@@ -451,9 +451,9 @@ class FlipCoinEnv(BaseEnv):
         is_angle_zero = info["is_angle_zero"]
 
         # reward = reaching_reward + is_grasped + place_reward * is_grasped + static_reward * is_obj_placed + angle_reward * is_obj_placed
-        reward = reaching_reward + is_grasped + angle_reward * is_grasped + place_reward * is_grasped * is_angle_zero  # + static_reward * is_obj_placed
+        reward = reaching_reward + is_grasped + angle_reward * is_grasped + 2 * place_reward * is_grasped * is_angle_zero  # + static_reward * is_obj_placed
 
-        reward[info["success"]] = 5.0
+        reward[info["success"]] = 10.0
 
         return reward
 
