@@ -9,6 +9,7 @@ from gymnasium.core import Env
 from gymnasium.wrappers import RecordEpisodeStatistics, RecordVideo
 from mani_skill.utils.gym_utils import ManiSkillVectorEnv
 from mani_skill.utils.wrappers.record import RecordEpisode
+from mani_skill.vector.wrappers.gymnasium import ManiSkillVectorEnv
 from mani_skill.vector.wrappers.sb3 import ManiSkillSB3VectorEnv
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import VecVideoRecorder
@@ -34,6 +35,10 @@ def main(args: CliArgs) -> None:
     args.minibatch_size = int(args.batch_size // args.num_minibatches)
     args.num_iterations = args.total_timesteps // args.batch_size
 
+    # torch.use_deterministic_algorithms()
+    if args.torch_deterministic:
+        torch.backends.cudnn.deterministic = True
+
     env_kwargs = {
         "obs_mode": "state",
         "render_mode": "rgb_array",
@@ -46,43 +51,48 @@ def main(args: CliArgs) -> None:
         },
     }
 
-    envs = gym.make(
-        args.env_id,
+    envs = ManiSkillVectorEnv(
+        env="maniskill_elirobots:FlipCoin-v1",
         robot_uids=ROBOT_UID,
         num_envs=args.num_envs,
+        ignore_terminations=True,
         reconfiguration_freq=args.reconfiguration_freq,
         **env_kwargs,
     )
 
     sb3_vec_envs = ManiSkillSB3VectorEnv(envs)
 
+    model_kwargs = {
+        "learning_rate": args.learning_rate,
+        "n_steps": args.num_steps,
+        "batch_size": args.minibatch_size,
+        "n_epochs": args.update_epochs,
+        "gamma": args.gamma,
+        "gae_lambda": args.gae_lambda,
+        "clip_range": args.clip_coef,
+        "clip_range_vf": None,
+        "normalize_advantage": True,
+        "ent_coef": args.ent_coef,
+        "vf_coef": args.vf_coef,
+        "max_grad_norm": args.max_grad_norm,
+        "use_sde": False,
+        "sde_sample_freq": -1,
+        "rollout_buffer_class": None,
+        "rollout_buffer_kwargs": None,
+        "target_kl": args.target_kl,
+        "stats_window_size": 100,
+        "tensorboard_log": f"runs_sb3/{args.exp_name}",
+        "policy_kwargs": {"net_arch": [256, 256]},
+        "verbose": 1,
+        "seed": args.seed,
+        "device": "cuda",
+        "_init_setup_model": True,
+    }
+
     model = PPO(
         policy="MlpPolicy",
         env=sb3_vec_envs,
-        learning_rate=args.learning_rate,
-        n_steps=args.num_steps,
-        batch_size=args.minibatch_size,
-        n_epochs=args.update_epochs,
-        gamma=args.gamma,
-        gae_lambda=args.gae_lambda,
-        clip_range=args.clip_coef,
-        clip_range_vf=None,
-        normalize_advantage=True,
-        ent_coef=args.ent_coef,
-        vf_coef=args.vf_coef,
-        max_grad_norm=args.max_grad_norm,
-        use_sde=False,
-        sde_sample_freq=-1,
-        rollout_buffer_class=None,
-        rollout_buffer_kwargs=None,
-        target_kl=args.target_kl,
-        stats_window_size=100,
-        tensorboard_log=f"runs_sb3/{args.exp_name}",
-        policy_kwargs={"net_arch": [256, 256]},
-        verbose=1,
-        seed=args.seed,
-        device="cuda",
-        _init_setup_model=True,
+        **model_kwargs,
     )
 
     _ = model.learn(total_timesteps=args.total_timesteps, progress_bar=True)
@@ -94,6 +104,6 @@ if __name__ == "__main__":
     args = CliArgs(
         env_id="FlipCoin-v1",
         exp_name=f"flipcoin-ec63-{int(datetime.datetime.now(tz=datetime.UTC).timestamp())}",
-        # ent_coef=0.0,
+        ent_coef=2e-2,
     )
     main(args)

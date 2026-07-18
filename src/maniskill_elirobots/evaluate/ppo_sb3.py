@@ -1,4 +1,5 @@
 import gymnasium as gym
+from mani_skill.vector.wrappers.gymnasium import ManiSkillVectorEnv
 from mani_skill.vector.wrappers.sb3 import ManiSkillSB3VectorEnv
 from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
@@ -7,7 +8,10 @@ from stable_baselines3.common.vec_env import VecVideoRecorder
 video_folder = "logs/videos/"
 video_length = 50
 
-model = PPO.load("flipcoin-ec63-1784332195")
+exp_name = "flipcoin-ec63-1784343291"
+exp_name = "flipcoin-ec63-1784343958"
+
+model = PPO.load(exp_name)
 
 env_kwargs = {
     "obs_mode": "state",
@@ -21,10 +25,17 @@ env_kwargs = {
     },
 }
 
-envs = gym.make(
+# envs = gym.make(
+#     "maniskill_elirobots:FlipCoin-v1",
+#     robot_uids="ec63",
+#     # num_envs=1,
+#     **env_kwargs,
+# )
+
+envs = ManiSkillVectorEnv(
     "maniskill_elirobots:FlipCoin-v1",
     robot_uids="ec63",
-    # num_envs=1,
+    num_envs=1,
     **env_kwargs,
 )
 
@@ -39,7 +50,7 @@ vec_env = VecVideoRecorder(
     video_folder,
     record_video_trigger=lambda x: x == 0,
     video_length=video_length,
-    name_prefix="ppo-flip-coin",
+    name_prefix=exp_name,
 )
 
 obs = vec_env.reset()

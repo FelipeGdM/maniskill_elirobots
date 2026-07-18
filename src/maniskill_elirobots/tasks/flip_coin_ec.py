@@ -346,7 +346,7 @@ class FlipCoinEnv(BaseEnv):
 
             sphere_xyz = goal_region_xyz.clone()
 
-            sphere_xyz[..., 2] = self.coin_half_length + torch.rand((env_count,)) * self.coin_max_height
+            sphere_xyz[..., 2] = self.coin_half_length + torch.rand((env_count,)) * self.coin_max_height + 200e-3
 
             self.goal_sphere.set_pose(
                 Pose.create_from_pq(
@@ -478,6 +478,9 @@ class FlipCoinEnv(BaseEnv):
         # the exact same in terms of output rewards, observations, success etc. should you reset state to a given state and take the same actions
         # self.goal_pos = state["goal_pos"]
         super().set_state_dict(state, env_idx)
+
+    def get_attr(self, attr, *args):
+        return [self.__dict__.get(attr)]
 
 
 if __name__ == "__main__":
