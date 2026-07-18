@@ -12,12 +12,14 @@ from mani_skill.utils.wrappers.record import RecordEpisode
 from mani_skill.vector.wrappers.gymnasium import ManiSkillVectorEnv
 from mani_skill.vector.wrappers.sb3 import ManiSkillSB3VectorEnv
 from stable_baselines3 import PPO
+from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
 from stable_baselines3.common.vec_env import VecVideoRecorder
 
 # from stable_baselines3.sac.policies import SACPolicy
 from maniskill_elirobots.utils import CliArgs
 
 ROBOT_UID = "ec63"
+VIDEO_FOLDER = "eval/videos"
 
 
 def list_wrappers(env: gym.Env):
@@ -42,8 +44,7 @@ def main(args: CliArgs) -> None:
     env_kwargs = {
         "obs_mode": "state",
         "render_mode": "rgb_array",
-        "sim_backend": "physx_cuda",
-        "render_backend": "sapien_cuda",
+        "reconfiguration_freq": args.reconfiguration_freq,
         "control_mode": "pd_joint_delta_pos",
         "sim_config": {
             "sim_freq": 100,
@@ -56,11 +57,42 @@ def main(args: CliArgs) -> None:
         robot_uids=ROBOT_UID,
         num_envs=args.num_envs,
         ignore_terminations=True,
-        reconfiguration_freq=args.reconfiguration_freq,
+        sim_backend="physx_cuda",
+        render_backend="sapien_cuda",
+        record_metrics=True,
+        **env_kwargs,
+    )
+
+    eval_envs = ManiSkillVectorEnv(
+        "maniskill_elirobots:FlipCoin-v1",
+        robot_uids="ec63",
+        num_envs=1,
+        sim_backend="physx_cpu",
+        # render_backend="sapien_cpu",
         **env_kwargs,
     )
 
     sb3_vec_envs = ManiSkillSB3VectorEnv(envs)
+
+    sb3_eval_vec_env = ManiSkillSB3VectorEnv(eval_envs)
+
+    video_sb3_eval_vec_env = VecVideoRecorder(
+        sb3_eval_vec_env,
+        video_folder=f"{VIDEO_FOLDER}/{args.exp_name}",
+        record_video_trigger=lambda _: True,
+        video_length=args.num_steps,
+        name_prefix=args.exp_name,
+    )
+
+    eval_callback = EvalCallback(
+        video_sb3_eval_vec_env,
+        best_model_save_path="./logs_sb3/",
+        log_path="./logs_sb3/",
+        eval_freq=(args.total_timesteps // args.num_envs) // 8,
+        deterministic=True,
+        render=True,
+        warn=False,
+    )
 
     model_kwargs = {
         "learning_rate": args.learning_rate,
@@ -95,15 +127,30 @@ def main(args: CliArgs) -> None:
         **model_kwargs,
     )
 
-    _ = model.learn(total_timesteps=args.total_timesteps, progress_bar=True)
+    checkpoint_callback = CheckpointCallback(
+        save_freq=(args.total_timesteps // args.num_envs) // 4,
+        save_path=f"checkpoints/{args.exp_name}",
+        save_replay_buffer=True,
+        save_vecnormalize=True,
+    )
+
+    _ = model.learn(
+        total_timesteps=args.total_timesteps,
+        progress_bar=True,
+        callback=[checkpoint_callback, eval_callback],
+    )
 
     model.save(f"{args.exp_name}")
+
+    video_sb3_eval_vec_env.close()
 
 
 if __name__ == "__main__":
     args = CliArgs(
+        # total_timesteps=1_024,
+        # num_envs=4,
         env_id="FlipCoin-v1",
         exp_name=f"flipcoin-ec63-{int(datetime.datetime.now(tz=datetime.UTC).timestamp())}",
-        ent_coef=2e-2,
+        ent_coef=1e-2,
     )
     main(args)
