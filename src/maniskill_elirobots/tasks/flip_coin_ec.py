@@ -123,7 +123,17 @@ class FlipCoinEnv(BaseEnv):
 
     # in the __init__ function you can pick a default robot your task should use e.g. the panda robot by setting a default for robot_uids argument
     # note that if robot_uids is a list of robot uids, then we treat it as a multi-agent setup and load each robot separately.
-    def __init__(self, *args, robot_uids: str = "ec63", robot_init_qpos_noise: float = 0.02, qvel_penalty=1.0, qvel_tolerance=0.2, angle_penalty=1.0, **kwargs):
+    def __init__(  # noqa: PLR0913
+        self,
+        *args,
+        robot_uids: str = "ec63",
+        robot_init_qpos_noise: float = 0.02,
+        qvel_penalty=1.0,
+        qvel_tolerance=0.2,
+        angle_penalty=1.0,
+        render_to_cpu=True,
+        **kwargs,
+    ):
         self.robot_init_qpos_noise = robot_init_qpos_noise
         self.scene_elements = {}
         self.goal_radius = kwargs.get("goal_radius", 0.1)
@@ -132,6 +142,8 @@ class FlipCoinEnv(BaseEnv):
         self.qvel_tolerance = qvel_tolerance
 
         self.angle_penalty = angle_penalty
+
+        self.render_to_cpu = render_to_cpu
 
         super().__init__(*args, robot_uids=robot_uids, **kwargs)
 
@@ -481,6 +493,13 @@ class FlipCoinEnv(BaseEnv):
 
     def get_attr(self, attr, *args):
         return [self.__dict__.get(attr)]
+
+    @override
+    def render(self):
+        frame = super().render()
+        if isinstance(frame, torch.Tensor) and self.render_to_cpu:
+            return frame.cpu()
+        return frame
 
 
 if __name__ == "__main__":
