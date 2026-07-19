@@ -17,6 +17,7 @@ from stable_baselines3.common.vec_env import VecVideoRecorder
 
 # from stable_baselines3.sac.policies import SACPolicy
 from maniskill_elirobots.utils import CliArgs
+from maniskill_elirobots.wrappers.debug_video_recorder import DebugVecVideoRecorder
 
 ROBOT_UID = "ec63"
 VIDEO_FOLDER = "eval/videos"
@@ -44,6 +45,11 @@ def main(args: CliArgs) -> None:
     env_kwargs = {
         "obs_mode": "state",
         "render_mode": "rgb_array",
+        "ignore_terminations": True,
+        "reward_mode": "normalized_dense",
+        # "metadata": {
+        #     "render_fps": 20,
+        # },
         "reconfiguration_freq": args.reconfiguration_freq,
         "control_mode": "pd_joint_delta_pos",
         "sim_config": {
@@ -56,7 +62,6 @@ def main(args: CliArgs) -> None:
         env="maniskill_elirobots:FlipCoin-v1",
         robot_uids=ROBOT_UID,
         num_envs=args.num_envs,
-        ignore_terminations=True,
         sim_backend="physx_cuda",
         render_backend="sapien_cuda",
         record_metrics=True,
@@ -76,11 +81,11 @@ def main(args: CliArgs) -> None:
 
     sb3_eval_vec_env = ManiSkillSB3VectorEnv(eval_envs)
 
-    video_sb3_eval_vec_env = VecVideoRecorder(
+    video_sb3_eval_vec_env = DebugVecVideoRecorder(
         sb3_eval_vec_env,
         video_folder=f"{VIDEO_FOLDER}/{args.exp_name}",
         record_video_trigger=lambda _: True,
-        video_length=args.num_steps,
+        video_length=args.num_steps - 1,
         name_prefix=args.exp_name,
     )
 
@@ -114,17 +119,24 @@ def main(args: CliArgs) -> None:
         "target_kl": args.target_kl,
         "stats_window_size": 100,
         "tensorboard_log": f"runs_sb3/{args.exp_name}",
-        "policy_kwargs": {"net_arch": [256, 256]},
+        "policy_kwargs": {"net_arch": [256, 256, 256]},
         "verbose": 1,
         "seed": args.seed,
         "device": "cuda",
         "_init_setup_model": True,
     }
 
-    model = PPO(
-        policy="MlpPolicy",
-        env=sb3_vec_envs,
-        **model_kwargs,
+    model = (
+        PPO(
+            policy="MlpPolicy",
+            env=sb3_vec_envs,
+            **model_kwargs,
+        )
+        if args.checkpoint is None
+        else PPO.load(
+            path=args.checkpoint,
+            env=sb3_vec_envs,
+        )
     )
 
     checkpoint_callback = CheckpointCallback(
@@ -147,10 +159,13 @@ def main(args: CliArgs) -> None:
 
 if __name__ == "__main__":
     args = CliArgs(
-        # total_timesteps=1_024,
-        # num_envs=4,
+        total_timesteps=16_384_000,
+        # num_envs=2_048,
+        # update_epochs=4,
         env_id="FlipCoin-v1",
         exp_name=f"flipcoin-ec63-{int(datetime.datetime.now(tz=datetime.UTC).timestamp())}",
         ent_coef=1e-2,
+        num_steps=100,
+        # checkpoint="flipcoin-ec63-1784392890",
     )
     main(args)
