@@ -50,7 +50,7 @@ from maniskill_elirobots.utils.math import coin_angle
 
 
 # register the environment by a unique ID and specify a max time limit. Now once this file is imported you can do gym.make("FlipCoin-v0")
-@register_env("FlipCoin-v1", max_episode_steps=50)
+@register_env("FlipCoin-v1", max_episode_steps=100)
 class FlipCoinEnv(BaseEnv):
     """
     Task Description
@@ -452,18 +452,20 @@ class FlipCoinEnv(BaseEnv):
         obj_to_goal_dist = info["obj_to_goal_dist"]
         place_reward = torch.exp(-5 * obj_to_goal_dist)
 
+        # energy_reward = torch.exp(-10 * obj_to_goal_dist)
+
         # static_reward = 1 - torch.tanh(self.qvel_penalty * info["qvel_mod"])
-        # static_reward = torch.exp(-self.qvel_penalty * info["qvel_mod"])
+        static_reward = torch.exp(-self.qvel_penalty * info["qvel_mod"])
 
         # angle_reward = torch.exp(-self.angle_penalty * info["obj_angle_dist"])
         angle_reward = torch.cos(info["obj_angle_dist"] / 180 * torch.pi)
 
         is_grasped = info["is_grasped"]
-        # is_obj_placed = info["is_obj_placed"]
+        is_obj_placed = info["is_obj_placed"]
         is_angle_zero = info["is_angle_zero"]
 
         # reward = reaching_reward + is_grasped + place_reward * is_grasped + static_reward * is_obj_placed + angle_reward * is_obj_placed
-        reward = reaching_reward + is_grasped + angle_reward * is_grasped + 2 * place_reward * is_grasped * is_angle_zero  # + static_reward * is_obj_placed
+        reward = reaching_reward + is_grasped + angle_reward * is_grasped + 2 * place_reward * is_grasped * is_angle_zero + 2 * static_reward * is_obj_placed * is_grasped * is_angle_zero
 
         reward[info["success"]] = 10.0
 
