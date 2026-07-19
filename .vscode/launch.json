@@ -8,7 +8,7 @@
             "name": "Python Debugger: Current File",
             "type": "debugpy",
             "request": "launch",
-            "program": "src/maniskill_elirobots/evaluate/ppo_sb3.py",
+            "program": "src/maniskill_elirobots/trainer/ppo_sb3.py",
             "console": "integratedTerminal",
             "justMyCode": false
         }
