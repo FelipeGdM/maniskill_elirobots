@@ -12,7 +12,9 @@ from mani_skill.utils.gym_utils import ManiSkillVectorEnv
 from mani_skill.utils.wrappers.record import RecordEpisode
 from mani_skill.vector.wrappers.gymnasium import ManiSkillVectorEnv
 from mani_skill.vector.wrappers.sb3 import ManiSkillSB3VectorEnv
-from stable_baselines3 import PPO
+
+# from stable_baselines3 import PPO
+from sbx import PPO
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
 from stable_baselines3.common.vec_env import VecVideoRecorder
 
@@ -36,6 +38,8 @@ def list_wrappers(env: gym.Env):
 
 def main(args: CliArgs) -> None:
 
+    torch.backends.cudnn.deterministic = args.torch_deterministic
+
     args.batch_size = int(args.num_envs * args.num_steps)
     # args.minibatch_size = int(args.batch_size // args.num_minibatches)
     args.num_iterations = args.total_timesteps // args.batch_size
@@ -45,13 +49,10 @@ def main(args: CliArgs) -> None:
     print(f"args.minibatch_size={args.minibatch_size} args.batch_size={args.batch_size} args.update_epochs={args.update_epochs}")
     print("####")
 
-    # torch.use_deterministic_algorithms()
-    if args.torch_deterministic:
-        torch.backends.cudnn.deterministic = True
-
     env_kwargs = {
         "obs_mode": "state",
         "render_mode": "rgb_array",
+        "record_metrics": True,
         "ignore_terminations": True,
         "reward_mode": "normalized_dense",
         # "metadata": {
@@ -71,7 +72,6 @@ def main(args: CliArgs) -> None:
         num_envs=args.num_envs,
         sim_backend="physx_cuda",
         render_backend="sapien_cuda",
-        record_metrics=True,
         **env_kwargs,
     )
 
@@ -98,8 +98,8 @@ def main(args: CliArgs) -> None:
 
     eval_callback = EvalCallback(
         video_sb3_eval_vec_env,
-        best_model_save_path="./logs_sb3/",
-        log_path="./logs_sb3/",
+        best_model_save_path=f"./logs_sb3/{args.exp_name}",
+        log_path=f"./logs_sb3/{args.exp_name}",
         eval_freq=(args.total_timesteps // args.num_envs) // 8,
         deterministic=True,
         render=True,
@@ -124,7 +124,7 @@ def main(args: CliArgs) -> None:
         "rollout_buffer_class": None,
         "rollout_buffer_kwargs": None,
         "target_kl": args.target_kl,
-        "stats_window_size": 100,
+        # "stats_window_size": 100,
         "tensorboard_log": str(TENSORBOARD_PATH / args.exp_name),
         # "policy_kwargs": {"net_arch": [256, 256, 256]},
         "policy_kwargs": {"net_arch": [256, 256]},
@@ -168,8 +168,4 @@ def main(args: CliArgs) -> None:
 if __name__ == "__main__":
     args = tyro.cli(CliArgs)
 
-    args = CliArgs(
-        env_id="FlipCoin-v1",
-        exp_name=f"flipcoin-ec63-{int(datetime.datetime.now(tz=datetime.UTC).timestamp())}",
-    )
     main(args)

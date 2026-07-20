@@ -4,7 +4,7 @@ from typing import override
 
 @dataclass
 class CliArgs:
-    exp_name: str | None = None
+    exp_name: str = "rl_experiment"
     """the name of this experiment"""
     seed: int = 1
     """seed of the experiment"""

@@ -22,7 +22,7 @@ args_list = [
         env_id="FlipCoin-v1",
         seed=seed,
     )
-    for seed in range(50, 50 + TOTAL_SEEDS)
+    for seed in range(55, 55 + TOTAL_SEEDS)
 ]
 
 if __name__ == "__main__":

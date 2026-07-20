@@ -5,9 +5,7 @@ set -e DISPLAY
 git commit -am "Train commit"
 
 python src/maniskill_elirobots/trainer/ppo_cleanrl.py \
-    --ent_coef=1e-2 \
     --exp_name=flipcoin-ec63-(date +%s)-(git rev-parse --short HEAD) \
-    --checkpoint=runs/flipcoin-ec63-1784378818-4dc8c3f/ckpt_8192000.pt \
     --env_id="FlipCoin-v1"
 
 # python src/maniskill_elirobots/trainer/ppo_cleanrl.py \
