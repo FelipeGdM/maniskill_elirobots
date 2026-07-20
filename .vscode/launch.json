@@ -11,6 +11,14 @@
             "program": "src/maniskill_elirobots/trainer/ppo_sb3.py",
             "console": "integratedTerminal",
             "justMyCode": false
+        },
+        {
+            "name": "Python Debugger: TD3",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "src/maniskill_elirobots/trainer/td3_sb3.py",
+            "console": "integratedTerminal",
+            "justMyCode": false
         }
     ]
 }
