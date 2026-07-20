@@ -32,7 +32,7 @@ class CliArgs:
     """the id of the environment"""
     robot_uid: str = "ec63"
     """robot unique id"""
-    total_timesteps: int = 8_192_001
+    total_timesteps: int = 16_384_000
     """total timesteps of the experiments"""
     learning_rate: float = 3e-4
     """the learning rate of the optimizer"""
@@ -44,7 +44,7 @@ class CliArgs:
     """whether to let parallel environments reset upon termination instead of truncation"""
     eval_partial_reset: bool = False
     """whether to let parallel evaluation environments reset upon termination instead of truncation"""
-    num_steps: int = 50
+    num_steps: int = 100
     """the number of steps to run in each environment per policy rollout"""
     num_eval_steps: int = 50
     """the number of steps to run in each evaluation environment during evaluation"""
@@ -98,7 +98,7 @@ class CliArgs:
     # to be filled in runtime
     batch_size: int = 0
     """the batch size (computed in runtime)"""
-    minibatch_size: int = 0
+    minibatch_size: int = 4096
     """the mini-batch size (computed in runtime)"""
     num_iterations: int = 0
     """the number of iterations (computed in runtime)"""

@@ -1,5 +1,6 @@
 import datetime
 import time
+from pathlib import Path
 from typing import Any
 
 import gymnasium as gym
@@ -21,6 +22,7 @@ from maniskill_elirobots.wrappers.debug_video_recorder import DebugVecVideoRecor
 
 ROBOT_UID = "ec63"
 VIDEO_FOLDER = "eval/videos"
+TENSORBOARD_PATH = Path("runs_seeds")
 
 
 def list_wrappers(env: gym.Env):
@@ -123,8 +125,9 @@ def main(args: CliArgs) -> None:
         "rollout_buffer_kwargs": None,
         "target_kl": args.target_kl,
         "stats_window_size": 100,
-        "tensorboard_log": f"runs_sb3/{args.exp_name}",
-        "policy_kwargs": {"net_arch": [256, 256, 256]},
+        "tensorboard_log": str(TENSORBOARD_PATH / args.exp_name),
+        # "policy_kwargs": {"net_arch": [256, 256, 256]},
+        "policy_kwargs": {"net_arch": [256, 256]},
         "verbose": 1,
         "seed": args.seed,
         "device": "cuda",
@@ -163,15 +166,10 @@ def main(args: CliArgs) -> None:
 
 
 if __name__ == "__main__":
+    args = tyro.cli(CliArgs)
+
     args = CliArgs(
-        total_timesteps=16_384_000,
-        # num_envs=2_048,
-        # update_epochs=4,
         env_id="FlipCoin-v1",
         exp_name=f"flipcoin-ec63-{int(datetime.datetime.now(tz=datetime.UTC).timestamp())}",
-        ent_coef=1e-2,
-        num_steps=100,
-        minibatch_size=4096,
-        # checkpoint="flipcoin-ec63-1784392890",
     )
     main(args)
