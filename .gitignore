@@ -10,3 +10,5 @@ videos/
 checkpoint/
 
 *.zip
+*.npz
+*.pkl
