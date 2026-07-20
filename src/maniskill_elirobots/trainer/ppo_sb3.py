@@ -35,8 +35,13 @@ def list_wrappers(env: gym.Env):
 def main(args: CliArgs) -> None:
 
     args.batch_size = int(args.num_envs * args.num_steps)
-    args.minibatch_size = int(args.batch_size // args.num_minibatches)
+    # args.minibatch_size = int(args.batch_size // args.num_minibatches)
     args.num_iterations = args.total_timesteps // args.batch_size
+
+    print("####")
+    print(f"args.num_iterations={args.num_iterations} args.num_envs={args.num_envs} args.num_eval_envs={args.num_eval_envs}")
+    print(f"args.minibatch_size={args.minibatch_size} args.batch_size={args.batch_size} args.update_epochs={args.update_epochs}")
+    print("####")
 
     # torch.use_deterministic_algorithms()
     if args.torch_deterministic:
@@ -166,6 +171,7 @@ if __name__ == "__main__":
         exp_name=f"flipcoin-ec63-{int(datetime.datetime.now(tz=datetime.UTC).timestamp())}",
         ent_coef=1e-2,
         num_steps=100,
+        minibatch_size=4096,
         # checkpoint="flipcoin-ec63-1784392890",
     )
     main(args)
