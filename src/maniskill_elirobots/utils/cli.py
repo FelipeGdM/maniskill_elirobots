@@ -32,7 +32,7 @@ class CliArgs:
     """the id of the environment"""
     robot_uid: str = "ec63"
     """robot unique id"""
-    total_timesteps: int = 16_384_000 // 1_024
+    total_timesteps: int = 16_384_000
     """total timesteps of the experiments"""
     learning_rate: float = 3e-4
     """the learning rate of the optimizer"""

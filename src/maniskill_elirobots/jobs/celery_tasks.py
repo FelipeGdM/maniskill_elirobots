@@ -1,15 +1,15 @@
 from dataclasses import asdict
 
 from maniskill_elirobots.jobs.celery_app import app
-from maniskill_elirobots.trainer.ppo_sb3 import main
+from maniskill_elirobots.trainer.ppo_cleanrl import main
 from maniskill_elirobots.utils import CliArgs
 
-# TOTAL_SEEDS = 48
-TOTAL_SEEDS = 3
+TOTAL_SEEDS = 60
+# TOTAL_SEEDS = 3
 
 
 @app.task(bind=True)  # pyright: ignore[reportUntypedFunctionDecorator]
-def execute_main(self, args: dict):
+def execute_main(_, args: dict):
     # print(largs)
     cli_args = CliArgs(**args)
     return main(cli_args)
@@ -22,7 +22,7 @@ args_list = [
         env_id="FlipCoin-v1",
         seed=seed,
     )
-    for seed in range(55, 55 + TOTAL_SEEDS)
+    for seed in range(TOTAL_SEEDS)
 ]
 
 if __name__ == "__main__":
