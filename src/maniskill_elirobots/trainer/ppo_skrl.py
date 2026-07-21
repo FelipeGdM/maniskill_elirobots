@@ -1,11 +1,14 @@
 import argparse
 import os
+import sys
 from typing import override
 
 import gymnasium as gym
-import mani_skill.envs  # needed to register the ManiSkill environment entry points
+import mani_skill.envs
 import torch
 import torch.nn as nn
+import tyro  # needed to register the ManiSkill environment entry points
+from mani_skill.vector.wrappers.gymnasium import ManiSkillVectorEnv
 
 # import the skrl components to build the RL system
 from skrl import logger
@@ -18,16 +21,18 @@ from skrl.resources.schedulers.torch import KLAdaptiveLR
 from skrl.trainers.torch import SequentialTrainer
 from skrl.utils import set_seed
 
-import maniskill_elirobots
+from maniskill_elirobots.utils import CliArgs
 
 # parse arguments
-parser = argparse.ArgumentParser()
-parser.add_argument("--num_envs", type=int, default=2048, help="Number of environments")
-parser.add_argument("--headless", action="store_true", help="Run in headless mode (no rendering)")
-parser.add_argument("--seed", type=int, default=None, help="Random seed")
-parser.add_argument("--checkpoint", type=str, default=None, help="Load checkpoint from path")
-parser.add_argument("--eval", action="store_true", help="Run in evaluation mode (logging/checkpointing disabled)")
-args, _ = parser.parse_known_args()
+# parser = argparse.ArgumentParser()
+# parser.add_argument("--num_envs", type=int, default=2048, help="Number of environments")
+# parser.add_argument("--headless", action="store_true", help="Run in headless mode (no rendering)")
+# parser.add_argument("--seed", type=int, default=None, help="Random seed")
+# parser.add_argument("--checkpoint", type=str, default=None, help="Load checkpoint from path")
+# parser.add_argument("--eval", action="store_true", help="Run in evaluation mode (logging/checkpointing disabled)")
+# args, _ = parser.parse_known_args()
+
+args = tyro.cli(CliArgs)
 
 
 # seed for reproducibility
@@ -96,53 +101,83 @@ class Value(DeterministicMixin, Model):
 
 
 # load the environment
-task_name = "FlipCoin"
-render_mode = "human" if not args.headless else None
-env_id = [spec for spec in gym.envs.registry if spec.startswith(f"{task_name}-v")][-1]  # get latest environment version
-env_kwargs = {"obs_mode": "state", "sim_backend": "physx_cuda", "control_mode": "pd_joint_delta_pos"}
-env = gym.make(env_id, num_envs=args.num_envs, render_mode=render_mode, **env_kwargs)
+env_id = args.env_id
+env_kwargs = {
+    "obs_mode": "state",
+    # "render_mode": "rgb_array",
+    "render_mode": "sapien",
+    "sim_backend": "physx_cuda",
+    # "record_metrics": True,
+    # "ignore_terminations": True,
+    "reward_mode": "normalized_dense",
+    # "render_backend": "sapien_cuda",
+    "reconfiguration_freq": args.reconfiguration_freq,
+    "control_mode": "pd_joint_delta_pos",
+    "sim_config": {
+        "sim_freq": 100,
+        "control_freq": 20,
+    },
+}
+
+# env = gym.make(
+#     env_id,
+#     num_envs=args.num_envs,
+#     **env_kwargs,
+# )
+
+env = ManiSkillVectorEnv(
+    env="maniskill_elirobots:FlipCoin-v1",
+    robot_uids="ec63",
+    num_envs=args.num_envs,
+    render_backend="sapien_cuda",
+    **env_kwargs,
+)
+
+# print(env)
+# print(type(env))
+# sys.exit()
+
 # wrap the environment
-env = wrap_env(env)
+env = wrap_env(env, wrapper="mani-skill")
 
-device = env.device
-
+device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
 
 # instantiate a memory as rollout buffer (any memory can be used for this)
-memory = RandomMemory(memory_size=20, num_envs=env.num_envs, device=device)
+memory = RandomMemory(memory_size=args.num_steps, num_envs=env.num_envs, device=device)
 
 
 # instantiate the agent's models (function approximators).
 # PPO requires 2 models, visit its documentation for more details
 # https://skrl.readthedocs.io/en/latest/api/agents/ppo.html#models
 models = {}
-models["policy"] = Policy(env.observation_space, env.state_space, env.action_space, device, clip_actions=True)
-models["value"] = Value(env.observation_space, env.state_space, env.action_space, device)
+models["policy"] = Policy(env.observation_space, env.state_space, env.action_space, device, clip_actions=True).to(device)
+models["value"] = Value(env.observation_space, env.state_space, env.action_space, device).to(device)
 
 
 # configure and instantiate the agent (visit its documentation to see all the options)
 # https://skrl.readthedocs.io/en/latest/api/agents/ppo.html#configuration-and-hyperparameters
 cfg = PPO_CFG()
-cfg.rollouts = 20  # memory_size
-cfg.learning_epochs = 8
-cfg.mini_batches = 32
-cfg.discount_factor = 0.8
-cfg.gae_lambda = 0.9
-cfg.learning_rate = 3e-4
+cfg.rollouts = args.num_steps  # memory_size
+cfg.learning_epochs = args.update_epochs
+cfg.mini_batches = args.num_minibatches
+cfg.discount_factor = args.gamma
+cfg.gae_lambda = args.gae_lambda
+cfg.learning_rate = args.learning_rate
 cfg.learning_rate_scheduler = KLAdaptiveLR
 cfg.learning_rate_scheduler_kwargs = {"kl_threshold": 0.008}
-cfg.grad_norm_clip = 0.5
-cfg.ratio_clip = 0.2
+cfg.grad_norm_clip = args.max_grad_norm
+cfg.ratio_clip = args.clip_coef
 cfg.value_clip = 0.2
-cfg.entropy_loss_scale = 0.0
-cfg.value_loss_scale = 0.5
+cfg.entropy_loss_scale = args.ent_coef
+cfg.value_loss_scale = args.vf_coef
 cfg.observation_preprocessor = RunningStandardScaler
 cfg.observation_preprocessor_kwargs = {"size": env.observation_space, "device": device}
 cfg.value_preprocessor = RunningStandardScaler
 cfg.value_preprocessor_kwargs = {"size": 1, "device": device}
 # logging to TensorBoard and write checkpoints (in timesteps)
-cfg.experiment.write_interval = "auto" if not args.eval else 0
-cfg.experiment.checkpoint_interval = "auto" if not args.eval else 0
-cfg.experiment.directory = f"runs/torch/{task_name}"
+cfg.experiment.write_interval = 0  # "auto"
+cfg.experiment.checkpoint_interval = 0  # "auto"
+cfg.experiment.directory = f"runs_skrl/torch/{args.exp_name}"
 
 agent = PPO(
     models=models,
@@ -156,13 +191,16 @@ agent = PPO(
 
 
 # configure and instantiate the RL trainer
-cfg_trainer = {"timesteps": 960, "headless": args.headless}
+cfg_trainer = {"timesteps": args.total_timesteps // args.num_envs, "headless": True}
 trainer = SequentialTrainer(cfg=cfg_trainer, env=env, agents=agent)
 
 if args.checkpoint:
     if not os.path.exists(args.checkpoint):
         logger.error(f"Checkpoint file not found: '{args.checkpoint}'")
-        exit(1)
+        sys.exit(1)
     agent.load(args.checkpoint)
 
-trainer.train() if not args.eval else trainer.eval()
+trainer.train()
+
+
+# if args.checkpoint is not None else trainer.eval()
