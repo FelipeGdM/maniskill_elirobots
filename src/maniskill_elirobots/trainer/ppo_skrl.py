@@ -18,6 +18,8 @@ from skrl.resources.schedulers.torch import KLAdaptiveLR
 from skrl.trainers.torch import SequentialTrainer
 from skrl.utils import set_seed
 
+import maniskill_elirobots
+
 # parse arguments
 parser = argparse.ArgumentParser()
 parser.add_argument("--num_envs", type=int, default=2048, help="Number of environments")
@@ -94,7 +96,7 @@ class Value(DeterministicMixin, Model):
 
 
 # load the environment
-task_name = "PushCube"
+task_name = "FlipCoin"
 render_mode = "human" if not args.headless else None
 env_id = [spec for spec in gym.envs.registry if spec.startswith(f"{task_name}-v")][-1]  # get latest environment version
 env_kwargs = {"obs_mode": "state", "sim_backend": "physx_cuda", "control_mode": "pd_joint_delta_pos"}

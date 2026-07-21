@@ -2,7 +2,7 @@ from dataclasses import dataclass, fields
 from typing import override
 
 
-@dataclass
+@dataclass(kw_only=True)
 class CliArgs:
     exp_name: str = "rl_experiment"
     """the name of this experiment"""
@@ -28,11 +28,11 @@ class CliArgs:
     """path to a pretrained checkpoint file to start evaluation/training from"""
 
     # Algorithm specific arguments
-    env_id: str = "PickCubeEc-v1"
+    env_id: str = "FlipCoin-v1"
     """the id of the environment"""
     robot_uid: str = "ec63"
     """robot unique id"""
-    total_timesteps: int = 16_384_000
+    total_timesteps: int = 16_384_000 // 1_024
     """total timesteps of the experiments"""
     learning_rate: float = 3e-4
     """the learning rate of the optimizer"""
@@ -60,7 +60,7 @@ class CliArgs:
     """the discount factor gamma"""
     gae_lambda: float = 0.9
     """the lambda for the general advantage estimation"""
-    num_minibatches: int = 4
+    num_minibatches: int = 25
     """the number of mini-batches"""
     update_epochs: int = 8
     """the K epochs to update the policy"""

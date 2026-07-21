@@ -1522,7 +1522,7 @@ requires-dist = [
     { name = "rq", specifier = ">=2.10.0" },
     { name = "rq-dashboard", specifier = ">=0.9.0" },
     { name = "setuptools", specifier = "==81.0.0" },
-    { name = "skrl", specifier = ">=2.1.0" },
+    { name = "skrl", extras = ["torch"], specifier = ">=2.1.0" },
     { name = "tensorboard", specifier = ">=2.20.0" },
     { name = "torch", specifier = ">=2.10.0,<3.0.0" },
 ]
