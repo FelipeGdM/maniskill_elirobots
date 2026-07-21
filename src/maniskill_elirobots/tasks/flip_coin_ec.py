@@ -50,7 +50,7 @@ from maniskill_elirobots.utils.math import coin_angle
 
 
 # register the environment by a unique ID and specify a max time limit. Now once this file is imported you can do gym.make("FlipCoin-v0")
-@register_env("FlipCoin-v1", max_episode_steps=100)
+@register_env("FlipCoin-v1", max_episode_steps=50)
 class FlipCoinEnv(BaseEnv):
     """
     Task Description
