@@ -8,9 +8,8 @@ TOTAL_SEEDS = 60
 # TOTAL_SEEDS = 3
 
 
-@app.task(bind=True)  # pyright: ignore[reportUntypedFunctionDecorator]
-def execute_main(_, args: dict):
-    # print(largs)
+@app.task
+def execute_main(args: dict):
     cli_args = CliArgs(**args)
     return main(cli_args)
 
@@ -22,7 +21,7 @@ args_list = [
         env_id="FlipCoin-v1",
         seed=seed,
     )
-    for seed in range(TOTAL_SEEDS)
+    for seed in range(100, 100 + TOTAL_SEEDS)
 ]
 
 if __name__ == "__main__":
