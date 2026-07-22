@@ -4,7 +4,7 @@ import time
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Optional, cast
 
 import gymnasium as gym
 
@@ -291,6 +291,7 @@ def main(args: CliArgs):
             success_once_eval_metric = torch.stack(eval_metrics["success_once"]).float().mean()
             success_at_end_eval_metric = torch.stack(eval_metrics["success_at_end"]).float().mean()
             mean_reward_eval_metric = torch.stack(eval_metrics["reward"]).float().mean()
+            print(f"{success_once_eval_metric=}")
             print(f"{success_at_end_eval_metric=}")
             print(f"{mean_reward_eval_metric=}")
             if args.evaluate:
@@ -471,9 +472,9 @@ def main(args: CliArgs):
     eval_envs.close()
 
     return {
-        "success_once_eval_metric": success_once_eval_metric,
-        "success_at_end_eval_metric": success_at_end_eval_metric,
-        "mean_reward_eval_metric": mean_reward_eval_metric,
+        "success_once_eval_metric": cast("torch.Tensor", success_once_eval_metric).cpu()[0],
+        "success_at_end_eval_metric": cast("torch.Tensor", success_at_end_eval_metric).cpu()[0],
+        "mean_reward_eval_metric": cast("torch.Tensor", mean_reward_eval_metric).cpu()[0],
     }
 
 
