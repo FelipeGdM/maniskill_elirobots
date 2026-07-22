@@ -3,11 +3,12 @@ from typing import cast
 
 import optuna
 from pandas import DataFrame
+from sqlalchemy.engine import URL
 
 from maniskill_elirobots.trainer.ppo_cleanrl import main
 from maniskill_elirobots.utils import CliArgs
 
-STUDY_NAME = "flipcoin_ppo_dist"
+STUDY_NAME = "flipcoin_ppo_dist2"
 
 # Get postgress addr from env var or use default tailscale IP
 POSTGRES_ADDR = os.getenv("POSTGRES_ADDR", "100.95.80.82")
@@ -22,7 +23,7 @@ def objective(trial: optuna.Trial):
     # ent_coef = trial.suggest_float("ent_coef", 1e-5, 1e-2, log=True)
     # update_epochs = trial.suggest_int("update_epochs", 4, 12)
 
-    seed = trial.suggest_int("seed", 1, 120)
+    seed = trial.suggest_int("seed", 1, 1000)
 
     gamma = 0.9
     gae_lambda = 0.95
@@ -57,26 +58,37 @@ def objective(trial: optuna.Trial):
     return result["mean_reward_eval_metric"]
 
 
-# storage_name = f"sqlite:///local_storage.db"
+def entrypoint():
 
-# user, password and db should match docker container config
-storage_name = f"postgres:///devuser:devpass@{POSTGRES_ADDR}:5432/optuna"
+    # storage_url = f"sqlite:///local_storage.db"
 
-print(f"Connecting to {storage_name=}")
+    # user, password and db should match docker container config
+    storage_url = URL.create(
+        drivername="postgresql+psycopg",
+        username="devuser",
+        password="devpass",  # noqa: S106
+        host=POSTGRES_ADDR,
+        port=5432,
+        database="optuna",
+    ).render_as_string(hide_password=False)
 
-# Cria um estudo Optuna com amostragem TPE (Bayesiana)
-study = optuna.create_study(
-    study_name=STUDY_NAME,
-    storage=storage_name,
-    load_if_exists=True,
-    direction="maximize",
-    # sampler=optuna.samplers.TPESampler(),
-    sampler=optuna.samplers.BruteForceSampler(),
-    pruner=optuna.pruners.MedianPruner(),
-)
+    # Cria um estudo Optuna com amostragem TPE (Bayesiana)
+    study = optuna.create_study(
+        study_name=STUDY_NAME,
+        storage=storage_url,
+        load_if_exists=True,
+        direction="maximize",
+        # sampler=optuna.samplers.TPESampler(),
+        sampler=optuna.samplers.BruteForceSampler(),
+        pruner=optuna.pruners.MedianPruner(),
+    )
 
-# Executa os trials
-study.optimize(objective, n_trials=100)
+    # Executa os trials
+    study.optimize(objective)
+
+
+if __name__ == "__main__":
+    entrypoint()
 
 # # Ou apenas analisar os resultados
 # print(f"Melhor valor: {study.best_value}")
