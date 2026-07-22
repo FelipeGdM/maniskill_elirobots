@@ -17,7 +17,8 @@ services:
       POSTGRES_USER: devuser
       POSTGRES_PASSWORD: devpass
       POSTGRES_DB: optuna
+    network_mode: host
     ports:
-      - "5432:5432" # Mapeia a porta do banco (opcional)
+      - 5432:5432
     volumes:
-      - ./.data/postgres:/var/lib/postgresql/data
+      - ./.data/postgres:/var/lib/postgresql
