@@ -472,9 +472,9 @@ def main(args: CliArgs):
     eval_envs.close()
 
     return {
-        "success_once_eval_metric": cast("torch.Tensor", success_once_eval_metric).cpu()[0],
-        "success_at_end_eval_metric": cast("torch.Tensor", success_at_end_eval_metric).cpu()[0],
-        "mean_reward_eval_metric": cast("torch.Tensor", mean_reward_eval_metric).cpu()[0],
+        "success_once_eval_metric": cast("torch.Tensor", success_once_eval_metric).cpu().item(),
+        "success_at_end_eval_metric": cast("torch.Tensor", success_at_end_eval_metric).cpu().item(),
+        "mean_reward_eval_metric": cast("torch.Tensor", mean_reward_eval_metric).cpu().item(),
     }
 
 
