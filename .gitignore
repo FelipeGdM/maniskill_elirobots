@@ -13,3 +13,5 @@ checkpoint/
 *.npz
 *.pkl
 *.db
+
+.data/

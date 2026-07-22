@@ -4,3 +4,4 @@ checkpoint/
 eval/
 runs*/
 runs/
+.data/
