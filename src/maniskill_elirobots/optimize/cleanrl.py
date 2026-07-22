@@ -8,7 +8,7 @@ from sqlalchemy.engine import URL
 from maniskill_elirobots.trainer.ppo_cleanrl import main
 from maniskill_elirobots.utils import CliArgs
 
-STUDY_NAME = "flipcoin_ppo_dist2"
+STUDY_NAME = "flipcoin_ppo_dist_long"
 
 # Get postgress addr from env var or use default tailscale IP
 POSTGRES_ADDR = os.getenv("POSTGRES_ADDR", "100.95.80.82")
@@ -35,7 +35,7 @@ def objective(trial: optuna.Trial):
     args = CliArgs(
         seed=seed,
         capture_video=False,
-        total_timesteps=1_024_000 * 8,
+        total_timesteps=1_024_000 * 16,
         eval_freq=16,
         learning_rate=learning_rate,
         gamma=gamma,
@@ -61,7 +61,7 @@ def objective(trial: optuna.Trial):
 def entrypoint():
 
     # storage_url = f"sqlite:///local_storage.db"
-
+    # postgresql+psycopg://devuser:devpass@100.95.80.82:5432/optuna
     # user, password and db should match docker container config
     storage_url = URL.create(
         drivername="postgresql+psycopg",
