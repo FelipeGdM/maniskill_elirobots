@@ -175,8 +175,8 @@ cfg.observation_preprocessor_kwargs = {"size": env.observation_space, "device": 
 cfg.value_preprocessor = RunningStandardScaler
 cfg.value_preprocessor_kwargs = {"size": 1, "device": device}
 # logging to TensorBoard and write checkpoints (in timesteps)
-cfg.experiment.write_interval = 0  # "auto"
-cfg.experiment.checkpoint_interval = 0  # "auto"
+cfg.experiment.write_interval = "auto"
+cfg.experiment.checkpoint_interval = "auto"
 cfg.experiment.directory = f"runs_skrl/torch/{args.exp_name}"
 
 agent = PPO(
@@ -193,12 +193,6 @@ agent = PPO(
 # configure and instantiate the RL trainer
 cfg_trainer = {"timesteps": args.total_timesteps // args.num_envs, "headless": True}
 trainer = SequentialTrainer(cfg=cfg_trainer, env=env, agents=agent)
-
-if args.checkpoint:
-    if not os.path.exists(args.checkpoint):
-        logger.error(f"Checkpoint file not found: '{args.checkpoint}'")
-        sys.exit(1)
-    agent.load(args.checkpoint)
 
 trainer.train()
 
