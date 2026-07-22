@@ -89,7 +89,7 @@ class FlipCoinEnv(BaseEnv):
     coin_desired_axis = torch.tensor([0.0, 0.0, 1.0])
 
     initial_coin_pose = sapien.Pose(
-        p=[-0.1, 0, 2 * coin_half_length],
+        p=[0, 0, 2 * coin_half_length],
         q=euler2quat(0, np.pi / 2, 0),
     )
 
@@ -311,21 +311,11 @@ class FlipCoinEnv(BaseEnv):
                 init_qpos=init_qpos,
             )
 
-            # here we write some randomization code that randomizes the x, y position of the cube we are pushing in the range [-0.1, -0.1] to [0.1, 0.1]
+            # xyz is the random displacement vector
             xyz = torch.zeros((env_count, 3))
-            xyz[..., :2] = torch.rand((env_count, 2)) * self.coin_radius * 4 - 2 * self.coin_radius
+            xyz[..., :2] = (torch.rand((env_count, 2)) - 0.5) * self.coin_radius * 4
 
-            coin_xyz = xyz + torch.tensor(self.initial_coin_pose.get_p()) if options.get("coin_xyz") is None else cast("torch.Tensor", options.get("coin_xyz"))
-
-            angle_mult = torch.randint(0, 4, size=(env_count,))
-            angle_axis = 2 * torch.pi * torch.rand((env_count, 1))
-
-            axis = torch.stack([torch.sin(angle_axis), torch.cos(angle_axis), torch.zeros((env_count, 1))], dim=1).reshape((env_count, 3))
-
-            coin_q = Quaternion.from_axis_angle(
-                axis,
-                angle=angle_mult * np.pi / 2,
-            )
+            coin_xyz = xyz + (torch.tensor(self.initial_coin_pose.get_p()) if options.get("coin_xyz") is None else cast("torch.Tensor", options.get("coin_xyz")))
 
             self.coin.set_pose(
                 Pose.create_from_pq(
@@ -465,9 +455,9 @@ class FlipCoinEnv(BaseEnv):
         is_angle_zero = info["is_angle_zero"]
 
         # reward = reaching_reward + is_grasped + place_reward * is_grasped + static_reward * is_obj_placed + angle_reward * is_obj_placed
-        reward = reaching_reward + is_grasped + angle_reward * is_grasped + place_reward * is_grasped * is_angle_zero  # + 2 * static_reward * is_obj_placed * is_grasped * is_angle_zero
+        reward = reaching_reward + is_grasped + angle_reward * is_grasped + place_reward * is_grasped * is_angle_zero + static_reward * is_obj_placed * is_grasped * is_angle_zero
 
-        reward[info["success"]] = 5.0
+        reward[info["success"]] = 25.0
 
         return reward
 
