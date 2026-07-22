@@ -68,4 +68,4 @@ RUN mv nvidia_layers.json /etc/vulkan/implicit_layer.d/nvidia_layers.json
 
 ADD . .
 
-RUN uv sync --no-install-project
+RUN uv sync --inexact --no-install-project
