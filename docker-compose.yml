@@ -16,7 +16,7 @@ services:
     environment:
       POSTGRES_USER: devuser
       POSTGRES_PASSWORD: devpass
-      POSTGRES_DB: myapp
+      POSTGRES_DB: optuna
     ports:
       - "5432:5432" # Mapeia a porta do banco (opcional)
     volumes:

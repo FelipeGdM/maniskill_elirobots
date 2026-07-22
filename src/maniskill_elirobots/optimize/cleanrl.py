@@ -1,3 +1,4 @@
+import os
 from typing import cast
 
 import optuna
@@ -7,6 +8,9 @@ from maniskill_elirobots.trainer.ppo_cleanrl import main
 from maniskill_elirobots.utils import CliArgs
 
 STUDY_NAME = "flipcoin_ppo_dist"
+
+# Get postgress addr from env var or use default tailscale IP
+POSTGRES_ADDR = os.getenv("POSTGRES_ADDR", "100.95.80.82")
 
 
 def objective(trial: optuna.Trial):
@@ -53,7 +57,12 @@ def objective(trial: optuna.Trial):
     return result["mean_reward_eval_metric"]
 
 
-storage_name = f"sqlite:///{STUDY_NAME}.db"
+# storage_name = f"sqlite:///local_storage.db"
+
+# user, password and db should match docker container config
+storage_name = f"postgres:///devuser:devpass@{POSTGRES_ADDR}:5432/optuna"
+
+print(f"Connecting to {storage_name=}")
 
 # Cria um estudo Optuna com amostragem TPE (Bayesiana)
 study = optuna.create_study(
