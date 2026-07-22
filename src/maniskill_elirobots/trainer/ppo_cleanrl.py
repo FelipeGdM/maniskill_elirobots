@@ -252,6 +252,7 @@ def main(args: CliArgs):
 
     success_at_end_eval_metric = 0
     mean_reward_eval_metric = 0
+    success_once_eval_metric = 0
 
     def clip_action(action: torch.Tensor):
         return torch.clamp(action.detach(), action_space_low, action_space_high)
@@ -287,6 +288,7 @@ def main(args: CliArgs):
                 if logger is not None:
                     logger.add_scalar(f"eval/{k}", mean, global_step)
                 print(f"eval_{k}_mean={mean}")
+            success_once_eval_metric = torch.stack(eval_metrics["success_once"]).float().mean()
             success_at_end_eval_metric = torch.stack(eval_metrics["success_at_end"]).float().mean()
             mean_reward_eval_metric = torch.stack(eval_metrics["reward"]).float().mean()
             print(f"{success_at_end_eval_metric=}")
@@ -469,6 +471,7 @@ def main(args: CliArgs):
     eval_envs.close()
 
     return {
+        "success_once_eval_metric": success_once_eval_metric,
         "success_at_end_eval_metric": success_at_end_eval_metric,
         "mean_reward_eval_metric": mean_reward_eval_metric,
     }

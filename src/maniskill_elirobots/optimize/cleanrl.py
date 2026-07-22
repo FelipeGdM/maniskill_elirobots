@@ -6,6 +6,8 @@ from pandas import DataFrame
 from maniskill_elirobots.trainer.ppo_cleanrl import main
 from maniskill_elirobots.utils import CliArgs
 
+STUDY_NAME = "flipcoin_ppo_dist"
+
 
 def objective(trial: optuna.Trial):
     # learning_rate = trial.suggest_float("learning_rate", 1e-4, 1e-3, step=1e-4)
@@ -39,20 +41,23 @@ def objective(trial: optuna.Trial):
         update_epochs=update_epochs,
         # exp_name=f"flipcoin-{trial.number:03d}-lr{learning_rate:.3e}-ue{update_epochs:02d}-cc{clip_coef:.3e}-ec{ent_coef:.3e}",
         exp_name=f"flipcoin-s{seed:03d}",
-        tensorboard_folder="runs_ppo_seeds_2",
+        tensorboard_folder=f"runs_{STUDY_NAME}",
     )
 
     result = main(args)
 
+    trial.set_user_attr("mean_reward_eval_metric", result["mean_reward_eval_metric"])
+    trial.set_user_attr("success_once_eval_metric", result["success_once_eval_metric"])
+    trial.set_user_attr("success_at_end_eval_metric", result["success_at_end_eval_metric"])
+
     return result["mean_reward_eval_metric"]
 
 
-study_name = "flipcoin_ppo_seeds_2"  # Unique identifier of the study.
-storage_name = f"sqlite:///{study_name}.db"
+storage_name = f"sqlite:///{STUDY_NAME}.db"
 
 # Cria um estudo Optuna com amostragem TPE (Bayesiana)
 study = optuna.create_study(
-    study_name=study_name,
+    study_name=STUDY_NAME,
     storage=storage_name,
     load_if_exists=True,
     direction="maximize",
