@@ -67,3 +67,5 @@ RUN wget -q https://raw.githubusercontent.com/haosulab/ManiSkill/main/docker/nvi
 RUN mv nvidia_layers.json /etc/vulkan/implicit_layer.d/nvidia_layers.json
 
 ADD . .
+
+RUN uv sync --no-install-project
