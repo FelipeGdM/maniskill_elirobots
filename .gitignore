@@ -12,3 +12,4 @@ checkpoint/
 *.zip
 *.npz
 *.pkl
+*.db
