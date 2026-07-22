@@ -32,13 +32,14 @@ class CliArgs:
     """the id of the environment"""
     robot_uid: str = "ec63"
     """robot unique id"""
-    total_timesteps: int = 16_384_000
+    total_timesteps: int = 8_192_000
+    # total_timesteps: int = 16_384_000
     """total timesteps of the experiments"""
     learning_rate: float = 3e-4
     """the learning rate of the optimizer"""
     num_envs: int = 1024
-    """the number of parallel environments"""
-    num_eval_envs: int = 8
+    """the number of parallelaying Atari with Deep Reinforcement Learning. environments"""
+    num_eval_envs: int = 32
     """the number of parallel evaluation environments"""
     partial_reset: bool = False
     """whether to let parallel environments reset upon termination instead of truncation"""
@@ -62,7 +63,7 @@ class CliArgs:
     """the lambda for the general advantage estimation"""
     num_minibatches: int = 25
     """the number of mini-batches"""
-    update_epochs: int = 8
+    update_epochs: int = 10
     """the K epochs to update the policy"""
     norm_adv: bool = True
     """Toggles advantages normalization"""
@@ -94,6 +95,8 @@ class CliArgs:
 
     angle_penalty: float = 1.0
     """Penalty gain for coin angle"""
+    tensorboard_folder: str = "runs"
+    """Root folder for tensorboard data"""
 
     # to be filled in runtime
     batch_size: int = 0

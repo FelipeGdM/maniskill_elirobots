@@ -155,7 +155,7 @@ def main(args: CliArgs):
         envs = FlattenActionSpaceWrapper(envs)
         eval_envs = FlattenActionSpaceWrapper(eval_envs)
     if args.capture_video:
-        eval_output_dir = f"runs/{run_name}/videos"
+        eval_output_dir = f"{args.tensorboard_folder}/{run_name}/videos"
         if args.evaluate:
             eval_output_dir = f"{os.path.dirname(args.checkpoint)}/test_videos"
         print(f"Saving eval videos to {eval_output_dir}")
@@ -163,7 +163,7 @@ def main(args: CliArgs):
             save_video_trigger = lambda x: (x // args.num_steps) % args.save_train_video_freq == 0
             envs = RecordEpisode(
                 envs,
-                output_dir=f"runs/{run_name}/train_videos",
+                output_dir=f"{args.tensorboard_folder}/{run_name}/train_videos",
                 save_trajectory=False,
                 save_video_trigger=save_video_trigger,
                 max_steps_per_video=args.num_steps,
@@ -218,7 +218,7 @@ def main(args: CliArgs):
                 partial_reset=False,
             )
             wandb.init(project=args.wandb_project_name, entity=args.wandb_entity, sync_tensorboard=False, config=config, name=run_name, save_code=True, group="PPO", tags=["ppo", "walltime_efficient"])
-        writer = SummaryWriter(f"runs/{run_name}")
+        writer = SummaryWriter(f"{args.tensorboard_folder}/{run_name}")
         writer.add_text(
             "hyperparameters",
             "|param|value|\n|-|-|\n%s" % ("\n".join([f"|{key}|{value}|" for key, value in vars(args).items()])),
@@ -250,6 +250,9 @@ def main(args: CliArgs):
     print("####")
     action_space_low, action_space_high = torch.from_numpy(envs.single_action_space.low).to(device), torch.from_numpy(envs.single_action_space.high).to(device)
 
+    success_at_end_eval_metric = 0
+    mean_reward_eval_metric = 0
+
     def clip_action(action: torch.Tensor):
         return torch.clamp(action.detach(), action_space_low, action_space_high)
 
@@ -261,7 +264,7 @@ def main(args: CliArgs):
         print(f"Epoch: {iteration}, global_step={global_step}")
         final_values = torch.zeros((args.num_steps, args.num_envs), device=device)
         agent.eval()
-        if iteration == 1 or iteration % args.eval_freq == 0:
+        if iteration == 1 or iteration % args.eval_freq == 0 or iteration == args.num_iterations:
             print("Evaluating")
             eval_obs, _ = eval_envs.reset()
             eval_metrics = defaultdict(list)
@@ -284,10 +287,14 @@ def main(args: CliArgs):
                 if logger is not None:
                     logger.add_scalar(f"eval/{k}", mean, global_step)
                 print(f"eval_{k}_mean={mean}")
+            success_at_end_eval_metric = torch.stack(eval_metrics["success_at_end"]).float().mean()
+            mean_reward_eval_metric = torch.stack(eval_metrics["reward"]).float().mean()
+            print(f"{success_at_end_eval_metric=}")
+            print(f"{mean_reward_eval_metric=}")
             if args.evaluate:
                 break
         if args.save_model and iteration % args.eval_freq == 0:
-            model_path = f"runs/{run_name}/ckpt_{global_step}.pt"
+            model_path = f"{args.tensorboard_folder}/{run_name}/ckpt_{global_step}.pt"
             torch.save(agent.state_dict(), model_path)
             print(f"model saved to {model_path}")
         # Annealing the rate if instructed to do so.
@@ -454,12 +461,17 @@ def main(args: CliArgs):
         logger.add_scalar("time/rollout_fps", args.num_envs * args.num_steps / rollout_time, global_step)
     if not args.evaluate:
         if args.save_model:
-            model_path = f"runs/{run_name}/ckpt_{global_step}.pt"
+            model_path = f"{args.tensorboard_folder}/{run_name}/ckpt_{global_step}.pt"
             torch.save(agent.state_dict(), model_path)
             print(f"model saved to {model_path}")
         logger.close()
     envs.close()
     eval_envs.close()
+
+    return {
+        "success_at_end_eval_metric": success_at_end_eval_metric,
+        "mean_reward_eval_metric": mean_reward_eval_metric,
+    }
 
 
 if __name__ == "__main__":
