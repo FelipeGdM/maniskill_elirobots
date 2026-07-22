@@ -5,7 +5,7 @@ description = ""
 authors = [{ name = "Felipe Gomes de Melo" }]
 license = { text = "MIT" }
 readme = "README.md"
-requires-python = ">=3.10,<3.15"
+requires-python = ">=3.11,<3.15"
 dependencies = [
     "torch>=2.10.0,<3.0.0",
     # "mani-skill@git+https://github.com/haosulab/ManiSkill@v3.0.0b22",
@@ -24,6 +24,9 @@ dependencies = [
     "flower>=2.0.1",
     "redis>=8.0.1",
     "skrl[torch]>=2.1.0",
+    "optuna>=4.9.0",
+    "pandas>=2.3.3",
+    "optuna-dashboard>=0.20.0",
 ]
 
 [tool.uv]
