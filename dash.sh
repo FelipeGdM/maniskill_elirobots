@@ -1,0 +1,1 @@
+optuna-dashboard postgresql+psycopg://devuser:devpass@100.95.80.82:5432/optuna
