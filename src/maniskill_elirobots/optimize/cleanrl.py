@@ -8,7 +8,7 @@ from sqlalchemy.engine import URL
 from maniskill_elirobots.trainer.ppo_cleanrl import main
 from maniskill_elirobots.utils import CliArgs
 
-STUDY_NAME = "flipcoin_ppo_dist_long"
+STUDY_NAME = "flipcoin_ppo_how_long"
 
 # Get postgress addr from env var or use default tailscale IP
 POSTGRES_ADDR = os.getenv("POSTGRES_ADDR", "100.95.80.82")
@@ -33,10 +33,11 @@ def objective(trial: optuna.Trial):
     update_epochs = 10
 
     args = CliArgs(
+        early_stop=True,
         seed=seed,
         capture_video=False,
-        total_timesteps=1_024_000 * 16,
-        eval_freq=16,
+        total_timesteps=1_024_000 * 64,
+        eval_freq=64,
         learning_rate=learning_rate,
         gamma=gamma,
         minibatch_size=minibatch_size,
@@ -55,7 +56,7 @@ def objective(trial: optuna.Trial):
     trial.set_user_attr("success_once_eval_metric", result["success_once_eval_metric"])
     trial.set_user_attr("success_at_end_eval_metric", result["success_at_end_eval_metric"])
 
-    return result["mean_reward_eval_metric"]
+    return result["total_timesteps"]
 
 
 def entrypoint():

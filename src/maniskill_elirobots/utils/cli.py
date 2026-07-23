@@ -98,6 +98,9 @@ class CliArgs:
     tensorboard_folder: str = "runs"
     """Root folder for tensorboard data"""
 
+    early_stop: bool = False
+    """Stop the training if evaluation achieves 100% completion rate"""
+
     # to be filled in runtime
     batch_size: int = 0
     """the batch size (computed in runtime)"""

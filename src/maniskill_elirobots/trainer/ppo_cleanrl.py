@@ -294,7 +294,7 @@ def main(args: CliArgs):
             print(f"{success_once_eval_metric=}")
             print(f"{success_at_end_eval_metric=}")
             print(f"{mean_reward_eval_metric=}")
-            if args.evaluate:
+            if args.evaluate or (args.early_stop and success_at_end_eval_metric >= 0.99):  # noqa: PLR2004
                 break
         if args.save_model and iteration % args.eval_freq == 0:
             model_path = f"{args.tensorboard_folder}/{run_name}/ckpt_{global_step}.pt"
@@ -472,6 +472,7 @@ def main(args: CliArgs):
     eval_envs.close()
 
     return {
+        "total_timesteps": global_step,
         "success_once_eval_metric": cast("torch.Tensor", success_once_eval_metric).cpu().item(),
         "success_at_end_eval_metric": cast("torch.Tensor", success_at_end_eval_metric).cpu().item(),
         "mean_reward_eval_metric": cast("torch.Tensor", mean_reward_eval_metric).cpu().item(),
@@ -480,4 +481,4 @@ def main(args: CliArgs):
 
 if __name__ == "__main__":
     args = tyro.cli(CliArgs)
-    main(args)
+    _ = main(args)
