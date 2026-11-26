@@ -172,6 +172,7 @@ class PushCubeEcEnv(BaseEnv):
                         0,
                         0,
                         0,
+                        0,
                     ],
                 ),
             )
